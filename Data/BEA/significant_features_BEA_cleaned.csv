@@ -1,0 +1,124 @@
+Category,Table,Metric,Column,Best Lag
+T2,T20600,Current Dollars,"Disposable personal income, current dollars",7
+T2,T20600,Chained Dollars,"Disposable personal income, chained (2017) dollars",7
+T2,T20600,Current Dollars,Other,7
+T3,T30300,Current Dollars,Taxes on corporate income,5
+T8,T80400,Current Dollars (Period Rate),Taxes on corporate income,5
+T2,T20600,Current Dollars,Personal income,7
+T2,T20600,Ratio,Chained (2017) dollars,7
+T2,T20600,Current Dollars,Personal current transfer receipts,7
+T2,T20600,Current Dollars,Government social benefits to persons,7
+T2,T20600,Current Dollars,Equals: Disposable personal income,7
+T2,T20600,Ratio,Current dollars,7
+T2,T20600,Chained Dollars,"Total, Billions of chained (2017) dollars",7
+T2,T20811,Fisher Quantity Index,Recreation services,1
+T3,T30300,Current Dollars,Subsidies,1
+T8,T80400,Current Dollars (Period Rate),Subsidies,1
+T1,T10301,Fisher Quantity Index,Gross housing value added,1
+T2,T20311,Fisher Quantity Index,Energy goods and services,1
+T2,T20600,Current Dollars,Equals: Personal saving,7
+T1,T10111,Fisher Quantity Index,Gross private domestic investment,1
+T2,T20811,Fisher Quantity Index,Food and beverages purchased for off-premises consumption,7
+T1,T10111,Fisher Quantity Index,Imports,1
+T2,T20311,Fisher Quantity Index,Other durable goods,1
+T2,T20311,Fisher Quantity Index,Recreation services,1
+T2,T20311,Fisher Quantity Index,Gasoline and other energy goods,1
+T8,T80111,Fisher Quantity Index,Gross private domestic investment,1
+T2,T20311,Fisher Quantity Index,Food services and accommodations,1
+T2,T20311,Fisher Quantity Index,Clothing and footwear,1
+T1,T10111,Fisher Quantity Index,Gross domestic purchases,1
+T2,T20407,Fisher Price Index,Other motor vehicle services,1
+T2,T20311,Fisher Quantity Index,Market-based PCE,1
+T2,T20811,Fisher Quantity Index,Food services and accommodations,1
+T8,T80111,Fisher Quantity Index,Imports,1
+T2,T20311,Fisher Quantity Index,Transportation services,1
+T2,T20311,Fisher Quantity Index,Personal consumption expenditures (PCE),1
+T1,T10111,Fisher Quantity Index,Personal consumption expenditures,1
+T2,T20811,Fisher Quantity Index,Transportation services,1
+T8,T80111,Fisher Quantity Index,Personal consumption expenditures,1
+T4,T40202,Quantity Contributions,"Nondurable goods, excluding petroleum and products",1
+T2,T20804,Fisher Price Index,Motor vehicles and parts,7
+T2,T20311,Fisher Quantity Index,Market-based PCE excluding food and energy,1
+T1,T10111,Fisher Quantity Index,Final sales to private domestic purchasers,1
+T2,T20311,Fisher Quantity Index,"PCE excluding food, energy, and housing",1
+T2,T20311,Fisher Quantity Index,Household consumption expenditures (for services),1
+T1,T10111,Fisher Quantity Index,Gross domestic product (GDP),1
+T1,T10111,Fisher Quantity Index,Gross national product,1
+T8,T80111,Fisher Quantity Index,Gross domestic product,1
+T2,T20311,Fisher Quantity Index,PCE excluding food and energy,1
+T2,T20408,Price Contributions,Other motor vehicle services,1
+T1,T10111,Fisher Quantity Index,Final sales to domestic purchasers,1
+T2,T20311,Fisher Quantity Index,Services,1
+T2,T20811,Fisher Quantity Index,Nondurable goods,7
+T2,T20311,Fisher Quantity Index,PCE services excluding energy and housing,1
+T2,T20811,Fisher Quantity Index,Household consumption expenditures (for services),1
+T2,T20311,Fisher Quantity Index,Nondurable goods,1
+T1,T10111,Fisher Quantity Index,Nondurable goods,1
+T1,T10111,Fisher Quantity Index,Goods,1
+T1,T10301,Fisher Quantity Index,Households,1
+T3,T31800B,Current Dollars,Benefits paid,2
+T2,T20811,Fisher Quantity Index,Other durable goods,1
+T8,T80111,Fisher Quantity Index,Goods,1
+T1,T10111,Chained Dollars,Average of GDP and GDI,1
+T2,T20811,Fisher Quantity Index,Clothing and footwear,1
+T2,T20802,Quantity Contributions,Recreational goods and vehicles,7
+T2,T20811,Fisher Quantity Index,Services,1
+T4,T40201,Fisher Quantity Index,"Nondurable goods, excluding petroleum and products",1
+T3,T30300,Current Dollars,Net lending or net borrowing (-),1
+T2,T20811,Fisher Quantity Index,PCE services excluding energy and housing,1
+T2,T20811,Fisher Quantity Index,Market-based PCE,1
+T2,T20808,Price Contributions,Motor vehicles and parts,7
+T2,T20311,Fisher Quantity Index,Health care,1
+T2,T20806,Chained Dollars,Recreational goods and vehicles,5
+T2,T20803,Fisher Quantity Index,Recreational goods and vehicles,5
+T2,T20811,Fisher Quantity Index,Market-based PCE excluding food and energy,1
+T2,T20600,Ratio,Personal saving as a percentage of disposable personal income,7
+T2,T20811,Fisher Quantity Index,Personal consumption expenditures (PCE),1
+T1,T10111,Fisher Quantity Index,Final sales of domestic product,1
+T5,T50100,Current Dollars,"Inventory valuation adjustment, corporate",1
+T1,T11400,Current Dollars,Inventory valuation adjustment,1
+T2,T20811,Fisher Quantity Index,"PCE excluding food, energy, and housing",1
+T2,T20811,Fisher Quantity Index,PCE excluding food and energy,1
+T2,T20807,Fisher Price Index,Motor vehicles and parts,7
+T1,T10608,Price Contributions,Transportation equipment,1
+T1,T10111,Fisher Quantity Index,Fixed investment,1
+T1,T10111,Chained Dollars,Gross domestic income (GDI),1
+T1,T11200,Current Dollars,Inventory valuation adjustment,1
+T8,T80111,Fisher Quantity Index,Nondurable goods,1
+T8,T80111,Fisher Quantity Index,Fixed investment,1
+T2,T20311,Fisher Quantity Index,Goods,1
+T1,T10111,Fisher Quantity Index,Equipment,1
+T2,T20811,Fisher Quantity Index,Gasoline and other energy goods,1
+T2,T20811,Fisher Price Index,Durable goods,2
+T2,T20811,Fisher Quantity Index,Other nondurable goods,7
+T2,T20811,Fisher Quantity Index,Health care,1
+T2,T20805,Current Dollars,Recreational goods and vehicles,5
+T2,T20311,Fisher Quantity Index,Recreational goods and vehicles,7
+T2,T20811,Fisher Quantity Index,Furnishings and durable household equipment,1
+T3,T31800B,Current Dollars,Budget receipts,1
+T3,T30300,Current Dollars,Other,1
+T3,T31505,Current Dollars,Energy,5
+T2,T20405,Current Dollars,Sports and recreational vehicles (79),7
+T6,T61400D,Current Dollars,Other,5
+T3,T30300,Current Dollars,Net state and local government saving,1
+T3,T31600,Current Dollars,Energy,5
+T2,T20801,Fisher Quantity Index,Recreational goods and vehicles,7
+T3,T31800B,Current Dollars,Withheld personal income tax and social security contributions,1
+T1,T10111,Fisher Quantity Index,Services,1
+T5,T51100,Current Dollars,State and local (16-39),5
+T1,T10111,Fisher Quantity Index,Exports,1
+T5,T51100,Current Dollars,State and local,5
+T3,T32000,Current Dollars,From the rest of the world,5
+T3,T32000,Current Dollars,Capital transfer receipts,5
+T1,T10608,Price Contributions,Residential,1
+T5,T50100,Current Dollars,State and local,1
+T2,T20408,Price Contributions,Musical instruments,1
+T7,T72400,Current Dollars,Imputed interest on plans' claims on employers,5
+T3,T32100,Current Dollars,To persons and business,5
+T8,T80111,Fisher Quantity Index,Exports,1
+T5,T51100,Current Dollars,Capital grants to state and local governments,5
+T5,T51100,Current Dollars,Capital grants paid by federal government,5
+T3,T32100,Current Dollars,Interest payments,5
+T4,T40203B,Fisher Quantity Index,Agricultural,1
+T7,T70203B,Fisher Quantity Index,Final sales of domestic product,1
+T7,T70206B,Chained Dollars,Final sales of domestic product,1

@@ -1,0 +1,39 @@
+{% extends "index.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Stranski meni -->
+        <nav class="col-md-3 sidebar">
+            <h4 class="sidebar-title">📊 Bitcoin Metrics</h4>
+            <ul class="sidebar-menu">
+                <li class="menu-item">💰 Currency Statistics
+                    <ul>
+                        <li class="sub-item" data-metric="Market Price (USD)">Market Price (USD)</li>
+                        <li class="sub-item" data-metric="Market Capitalization (USD)">Market Capitalization</li>
+                        <li class="sub-item" data-metric="Exchange Trade Volume (USD)">Trade Volume</li>
+                    </ul>
+                </li>
+                <li class="menu-item">⛏️ Mining Information
+                    <ul>
+                        <li class="sub-item" data-metric="Total Hash Rate (TH/s)">Total Hash Rate</li>
+                        <li class="sub-item" data-metric="Miners Revenue (USD)">Miners Revenue</li>
+                    </ul>
+                </li>
+                <li class="menu-item">🌐 Network Activity
+                    <ul>
+                        <li class="sub-item" data-metric="Unique Addresses Used">Unique Addresses Used</li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Glavna vsebina -->
+        <main class="col-md-9">
+            <h3 id="metric-title">Izberi metriko</h3>
+            <canvas id="chartCanvas"></canvas>
+            <div id="table-container" class="mt-4"></div>
+        </main>
+    </div>
+</div>
+{% endblock %}
