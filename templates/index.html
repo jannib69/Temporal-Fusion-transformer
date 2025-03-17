@@ -1,10 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC & BEA Dashboard</title>
+
+    <!-- Styles & Bootstrap -->
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 </head>
 <body>
 
+    <!-- Navbar -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Nalaganje podatkov...</span>
+            </div>
+            <p>Podatki se nalagajo...</p>
+        </div>
+
+        <!-- Dashboard Content (Initially Hidden) -->
+        <div id="dashboard-content" style="display: none;">
+            <h1 class="text-center">Dobrodošli v BTC & BEA Dashboard</h1>
+            <p class="text-center">Raziskujte podatke o Bitcoin-u in ekonomskih indikatorjih.</p>
+
+            <!-- Prediction Chart -->
+            <h2 class="text-center mt-4">Napoved Modela</h2>
+            <div id="prediction-chart-container" class="text-center">
+                <canvas id="predictionChart" style="max-width: 800px; margin: auto;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Bootstrap & Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="static/scripts.js"></script>
 </body>
 </html>

@@ -27,7 +27,11 @@ class FRED:
             df = pd.DataFrame(data["observations"])
             df["date"] = pd.to_datetime(df["date"])
             df["value"] = pd.to_numeric(df["value"], errors="coerce")
+
             df = df.rename(columns={"value": series_id}).set_index("date")
+            df.index.name = "Date"
+
+            df.drop(columns=["realtime_start", "realtime_end"], errors="ignore", inplace=True)
 
             all_data.append(df)
 

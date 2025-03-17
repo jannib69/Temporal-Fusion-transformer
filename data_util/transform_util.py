@@ -7,7 +7,7 @@ class TransformUtil:
     @staticmethod
     def create_indicator(indicator_name, df, scaler="minmax", method="mean", explained_var=0.8):
         if df.isnull().values.any():
-            df = df.interpolate(method="linear", limit_direction="both").fillna(method="bfill").fillna(method="ffill")
+            df = df.interpolate(method="linear", limit_direction="both")
 
         scaler = MinMaxScaler() if scaler == "minmax" else StandardScaler()
         df_scaled = pd.DataFrame(scaler.fit_transform(df), index=df.index, columns=df.columns)
