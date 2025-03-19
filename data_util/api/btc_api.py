@@ -2,7 +2,9 @@ import cloudscraper
 import pandas as pd
 import yfinance as yf
 import requests
+import io
 from tqdm import tqdm
+
 from data_util.transform_util import TransformUtil
 
 class BTC:
@@ -13,7 +15,8 @@ class BTC:
         response = scraper.get(url)
         response.raise_for_status()
 
-        df = pd.read_html(response.text, attrs={"class": "etf"})[0]
+        html_content = io.StringIO(response.text)
+        df = pd.read_html(html_content, attrs={"class": "etf"})[0]
 
         df.columns = ["Date", "IBIT", "FBTC", "BITB", "ARKB", "BTCO",
                       "EZBC", "BRRR", "HODL", "BTCW", "GBTC", "BTC", "Total"]
@@ -25,8 +28,10 @@ class BTC:
 
         df = df.replace(r"\((.*?)\)", r"-\1", regex=True).apply(pd.to_numeric, errors="coerce")
 
+        # Fill NaNs with 0
         df.fillna(0.0, inplace=True)
 
+        # Compute Total ETF Flows
         df["Total"] = df.iloc[:, :-1].sum(axis=1)
 
         return df
@@ -136,5 +141,7 @@ class BTC:
         df_btc_indices["BTC_network"] = TransformUtil.create_indicator("BTC_network", df_tmp[network_indicators],
                                                                          scaler="standard", method="mean",
                                                                          explained_var=explained_var)
+        df_btc_indices = df_btc_indices.dropna(how="all")
 
         return df_btc_indices
+

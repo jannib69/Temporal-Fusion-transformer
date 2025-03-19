@@ -11,6 +11,8 @@ FILE_PATH = "Data/daily_data.csv"
 SUBSET_PATH = "Data/Subsets/"
 
 def get_data():
+    os.makedirs(SUBSET_PATH, exist_ok=True)
+
     if os.path.exists(FILE_PATH):
         file_date = datetime.fromtimestamp(os.path.getmtime(FILE_PATH)).date()
         today = datetime.today().date()
@@ -25,27 +27,30 @@ def get_data():
     df_btc = BTC.get_crypto_data("BTC-USD")
     main_df = main_df.merge(df_btc, on="Date", how="left")
 
-    bitcoin_df_indices = process_bitcoin_data(df_btc, explained_var=0.9)
+    bitcoin_df_indices = process_bitcoin_data(df_btc, explained_var=0.8)
     bitcoin_df = BTC.get_bitcoin_indices()
 
     main_df = main_df.merge(bitcoin_df_indices, on="Date", how="left")
     main_df = main_df.merge(bitcoin_df, on="Date", how="left")
-
-    remove_fully_nan_rows(main_df).to_csv(f"{SUBSET_PATH}btc.csv", index=True)
+    btc_df_tmp = df_btc.merge(bitcoin_df, on="Date", how="left")
+    remove_fully_nan_rows(btc_df_tmp).to_csv(f"{SUBSET_PATH}btc.csv", index=True)
 
     bitcoin_etf_df = BTC.get_etf_flows()
     main_df = main_df.merge(bitcoin_etf_df, on="Date", how="left")
     remove_fully_nan_rows(bitcoin_etf_df).to_csv(f"{SUBSET_PATH}btc-etf.csv", index=True)
 
     print(f"Processing BEA")
-    bea_df = process_bea_data(bea=BEA(), df_btc=df_btc, explained_var=0.9, nan_threshold=0.7, min_date=bitcoin_df.index.min())
-    main_df = main_df.merge(bea_df, on="Date", how="left")
-    remove_fully_nan_rows(bea_df).to_csv(f"{SUBSET_PATH}bea.csv", index=True)
+    bea_indices_df, orig_bea_df = process_bea_data(bea=BEA(), df_btc=df_btc, explained_var=0.8, nan_threshold=0.7, min_date=bitcoin_df.index.min())
+    main_df = main_df.merge(bea_indices_df, on="Date", how="left")
+    remove_fully_nan_rows(orig_bea_df).to_csv(f"{SUBSET_PATH}bea.csv", index=True)
+
+    df_indices = bitcoin_df_indices.merge(bea_indices_df, on="Date", how="left")
+    remove_fully_nan_rows(df_indices).to_csv(f"{SUBSET_PATH}indicators.csv", index=True)
 
     print(f"Processing FRED")
-    fred_df = process_fred_data(FRED(), df_btc)
+    fred_df, orig_fred = process_fred_data(FRED(), df_btc)
     main_df = main_df.merge(fred_df, on="Date", how="left")
-    remove_fully_nan_rows(fred_df).to_csv(f"{SUBSET_PATH}fred.csv", index=True)
+    remove_fully_nan_rows(orig_fred).to_csv(f"{SUBSET_PATH}fred.csv", index=True)
 
     main_df = remove_fully_nan_rows(main_df)
 
@@ -63,8 +68,20 @@ def index():
 
 @app.route("/load_data")
 def load_data():
-    df = get_data()  # Now load data asynchronously
-    return jsonify({"status": "Data loaded successfully"})
+    file_exists = os.path.exists(FILE_PATH)
+    file_updated_today = file_exists and datetime.fromtimestamp(os.path.getmtime(FILE_PATH)).date() == datetime.today().date()
+
+    if file_updated_today:
+        return jsonify({"status": "ready"})
+    else:
+        return jsonify({"status": "update_required"})
+
+@app.route("/update_data", methods=['POST'])
+def update_data():
+    get_data()
+    return jsonify({"status": "completed"})
+
+
 @app.route("/navbar")
 def navbar():
     return render_template("navbar.html")

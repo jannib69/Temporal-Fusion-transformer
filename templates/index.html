@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTC & BEA Dashboard</title>
+    <title>Bitcoin Napovedi</title>
 
     <!-- Styles & Bootstrap -->
     <link rel="stylesheet" href="static/styles.css">
@@ -19,23 +19,26 @@
 
     <!-- Main Content -->
     <div class="container mt-5">
-        <!-- Loading Spinner -->
-        <div id="loading" class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Nalaganje podatkov...</span>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content">
+            <!-- Loading Spinner (initially visible) -->
+            <div id="loading" class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Nalaganje podatkov...</span>
+                </div>
+                <p class="text-center mt-3">Podatki se nalagajo...</p>
             </div>
-            <p>Podatki se nalagajo...</p>
-        </div>
 
-        <!-- Dashboard Content (Initially Hidden) -->
-        <div id="dashboard-content" style="display: none;">
-            <h1 class="text-center">Dobrodošli v BTC & BEA Dashboard</h1>
-            <p class="text-center">Raziskujte podatke o Bitcoin-u in ekonomskih indikatorjih.</p>
+            <div id="main-content" style="display:none;">
+                <h1 class="text-center">Bitcoin Napovedi</h1>
+                <p class="text-center">Napoved cene Bitcoina z uporabo Temporal Fusion Transformer modela.</p>
 
-            <!-- Prediction Chart -->
-            <h2 class="text-center mt-4">Napoved Modela</h2>
-            <div id="prediction-chart-container" class="text-center">
-                <canvas id="predictionChart" style="max-width: 800px; margin: auto;"></canvas>
+                <!-- Prediction Chart -->
+                <h2 class="text-center mt-4">Napoved Modela</h2>
+                <div id="prediction-chart-container" class="text-center">
+                    <canvas id="predictionChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -46,5 +49,6 @@
     <!-- Bootstrap & Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="static/scripts.js"></script>
+    <script src="static/prediction_chart.js"></script> <!-- Separate script for chart -->
 </body>
 </html>

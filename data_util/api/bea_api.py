@@ -14,7 +14,7 @@ class BEA:
     def __init__(self):
         self.api_key = Config.BEA_API_KEY
         self.session = requests.Session()
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504], respect_retry_after_header=False )
         self.session.mount("https://", HTTPAdapter(max_retries=retries))
 
     def _get_response(self, url):
@@ -57,12 +57,11 @@ class BEA:
             return pd.to_datetime(date_str, format="%Y")
         return pd.NaT  # Invalid value
 
-    def fetch_data(self, table_name, dataset_name="NIPA", frequency="M", year="ALL", processed=True,
+    def fetch_data(self, table_name, dataset_name="NIPA", frequencies=["M", "Q", "A"], year="ALL", processed=True,
                    metric_filter=None):
         """
         Fetches data for a specific table from the BEA API with a fallback frequency mechanism.
         """
-        frequencies = ["M", "Q", "A"]
         for freq in frequencies:
             url = f"{self.BASE_URL}?UserID={self.api_key}&method=GetData&datasetname={dataset_name}&TableName={table_name}&Frequency={freq}&Year={year}&ResultFormat=json"
             data = self._get_response(url)
@@ -90,7 +89,6 @@ class BEA:
             # Filter only columns where METRIC_NAME == "Fisher Quantity Index"
             if metric_filter:
                 df_pivot = df_pivot.xs(metric_filter, axis=1, level=1, drop_level=True)
-
             return df_pivot
 
         # If all frequency attempts fail

@@ -4,12 +4,13 @@ from copy import deepcopy as dc
 from data_util import TransformUtil, BTC
 from tqdm import tqdm
 from datetime import datetime
+import time
 
 # Definicija kategorij
 bea_category_names = {
-    "T1": "GDP & National Income",
-    "T2": "Personal Income & Employment",
-    "T3": "Industry-Specific Accounts",
+    "T1": "GDP and National Income",
+    "T2": "Personal Income and Employment",
+    "T3": "Industry Specific Accounts",
     "T4": "Fixed Assets and Investment",
     "T5": "Trade and International Transactions",
     "T6": "Prices and Inflation",
@@ -20,6 +21,8 @@ bea_category_names = {
 def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_threshold=0.7):
     df_indices = pd.DataFrame(index=pd.date_range(start="2000-01-01", end="2030-12-31", freq="QS"))
     df_indices.index.name = "Date"
+    df_bea_orig = pd.DataFrame(index=pd.date_range(start="2000-01-01", end="2030-12-31", freq="D"))
+    df_bea_orig.index.name = "Date"
 
     significant_features_df = pd.read_csv("Data/BEA/significant_features_BEA_cleaned.csv")
     category_results = {}
@@ -28,12 +31,12 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
                                          desc="Processing BEA Data"):
         try:
             df = bea.fetch_data(table)
+            time.sleep(5)
 
+            df = df[df.index >= min_date]
             if df.empty:
                 print(f"Warning: No data found for {table}. Skipping...")
                 continue
-
-            df = df[df.index >= min_date]
 
             unique_metrics = group["Metric"].unique()
             table_results = []
@@ -52,6 +55,7 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
                 for col in df_filtered.columns:
                     best_lag = group[group["Column"] == col]["Best Lag"].values[0]
                     df_filtered.loc[:, col] = df_filtered[col].shift(int(best_lag))
+                    df_bea_orig.loc[df_filtered.index, col] = df_pivot[col]
 
                 table_results.append(df_filtered)
 
@@ -88,10 +92,9 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
         df_indices.loc[:, bea_category_names[category]] = df_indices[bea_category_names[category]].shift(best_lag)
 
     df_indices = remove_fully_nan_rows(df_indices)
-
     df_indices = df_indices.resample("D").interpolate(method="linear", limit_direction="both")
     print("All BEA categories processed successfully.")
-    return df_indices
+    return df_indices, df_bea_orig
 
 def drop_cols_with_nan(df, tresh=0.7):
     print(f"Number of cols before dropping NaNs: {len(df.columns)}")
@@ -125,7 +128,6 @@ def best_granger_lag(df1, df_btc, target_col, max_lag=5):
 
     return best_lag
 
-
 def remove_fully_nan_rows(df):
     first_valid_index = df.notna().any(axis=1).idxmax()
     last_valid_index = df.loc[::-1].notna().any(axis=1).idxmax()
@@ -141,31 +143,40 @@ def process_fred_data(fred, df_btc):
                        "EPUMONETARY", "APU000072610"]
     df_monthly = fred.fetch_data(monthly_metrics, frequency="m", end_date=end_date)
 
-    df_monthly.index.name = "Date"
+    daily_metrics = ["DTWEXBGS", "DGS10", "DGS2", "DFF", "VIXCLS", "USEPUINDXD", "WLEMUINDXD", "T10Y2Y", "T10Y3M", "T10YIE"]
+    df_daily = fred.fetch_data(daily_metrics, frequency="d", end_date=end_date)
 
+    df_fred_orig = df_monthly.merge(df_daily, on="Date", how="outer")
 
-    df_daily = fred.fetch_data(
-        ["DTWEXBGS", "DGS10", "DGS2", "DFF", "VIXCLS", "USEPUINDXD", "WLEMUINDXD", "T10Y2Y", "T10Y3M", "T10YIE"],
-        frequency="d", end_date=end_date)
-    df_daily.index.name = "Date"
+    if df_monthly.empty or df_daily.empty:
+        print("Warning: Some FRED data is missing! Skipping processing.")
+        return pd.DataFrame()
 
     df_fred_indices = pd.DataFrame(index=pd.date_range(start=df_monthly.index.min(), end="2026-12-31", freq="D"))
     df_fred_indices.index.name = "Date"
 
     btc_monthly = df_btc.resample("MS").mean().dropna()
-    for col in df_fred_indices.columns:
-        best_lag = best_granger_lag(df_monthly[[col]], btc_monthly, "Close")
-        df_fred_indices[col] = df_fred_indices[col].shift(best_lag)
 
-    for col in df_fred_indices.columns:
+    for col in df_monthly.columns:
+        best_lag = best_granger_lag(df_monthly[[col]], btc_monthly, "Close")
+        print(f"Monthly Lag: {best_lag} | Column: {col}")
+        df_fred_indices[col] = df_monthly[col].shift(best_lag)
+
+    for col in df_daily.columns:
         best_lag = best_granger_lag(df_daily[[col]], df_btc, "Close")
-        df_fred_indices[col] = df_fred_indices[col].shift(best_lag)
+        print(f"Daily Lag: {best_lag} | Column: {col}")
+        df_fred_indices[col] = df_daily[col].shift(best_lag)
+
+    print("FRED Indices Before Cleaning:", df_fred_indices.tail())
 
     df_fred_indices = remove_fully_nan_rows(df_fred_indices)
+    print("FRED Indices After Cleaning:", df_fred_indices.tail())
 
     df_fred_indices = df_fred_indices.interpolate(method="linear", limit_direction="both")
+    print("FRED Indices After Interpolation:", df_fred_indices.tail())
 
-    return df_fred_indices
+    return df_fred_indices, df_fred_orig
+
 
 def process_bitcoin_data(df_btc, explained_var=0.9):
     df_btc_indices_tmp = BTC.generate_bitcoin_indicators(explained_var)
