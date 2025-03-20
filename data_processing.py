@@ -196,3 +196,5 @@ def process_bitcoin_data(df_btc, explained_var=0.9):
 
     return df_btc_indices
 
+def get_today():
+    return datetime.today().strftime('%Y-%m-%d')

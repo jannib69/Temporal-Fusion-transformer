@@ -16,8 +16,8 @@ body {
     top: 0;
     width: 100%;
     z-index: 1000;
-    border-radius: 0px 0px 15px 15px; /* Zaobljeni robovi na dnu */
-    box-shadow: none; /* Odstrani kvadratni videz */
+    border-radius: 0px 0px 15px 15px;
+    box-shadow: none;
 }
 
 .navbar-brand {
@@ -45,7 +45,6 @@ body {
     padding: 30px;
     background-color: white;
     border-radius: 15px;
-    /*box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
     margin-top: 30px;
     max-width: 95%;
 }
@@ -79,8 +78,7 @@ h1, h2, h3 {
     text-decoration: underline;
 }
 
-/* GRAF */
-/* Popravljena višina grafa */
+/* Chart */
 #chart-container {
     width: 100%;
     max-width: 1000px;
@@ -95,19 +93,22 @@ h1, h2, h3 {
     justify-content: center;
 }
 
-/* Povečana višina platna (canvas) */
 #dataChart {
     width: 100% !important;
     height: 100% !important;
     max-height: 500px !important;
 }
 
-/* Fix Loading Spinner */
+/* Loading Spinner */
 #loading {
     display: none;
     text-align: center;
     font-size: 16px;
     color: #555;
+}
+
+.spinner-border {
+    color: #f7931a !important;
 }
 
 /* Metrics List */
@@ -131,7 +132,7 @@ h1, h2, h3 {
     color: white;
 }
 
-/* TABELA PODATKOV */
+/* Data Table */
 #table-container {
     width: 100%;
     max-width: 1000px;
@@ -142,7 +143,6 @@ h1, h2, h3 {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* Tabela Styling */
 #data-table {
     width: 100%;
     border-collapse: collapse;
@@ -164,13 +164,12 @@ h1, h2, h3 {
     background-color: #f1f1f1;
 }
 
-/* SCROLLBAR ZA TABELA */
+/* Scrollbar */
 #table-container {
     max-height: 400px;
     overflow-y: auto;
 }
 
-/* Custom Scrollbar */
 #table-container::-webkit-scrollbar {
     width: 10px;
 }
