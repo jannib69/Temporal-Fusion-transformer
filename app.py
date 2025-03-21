@@ -1,8 +1,10 @@
-from flask import Flask, render_template, jsonify, request
+import numpy as np
+from flask import Flask, render_template, jsonify, request, redirect
 import pandas as pd
-from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today
+from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today, preprocess_for_tft
+from predict import load_model, run_tft_prediction
 from data_util import HolidayUtil, BTC, BEA, FRED
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import threading
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -105,6 +107,10 @@ scheduler.add_job(schedule_data_check, "interval", minutes=0.1)
 scheduler.start()
 
 @app.route("/")
+def redirect_home():
+    return redirect("/home")
+
+@app.route("/home")
 def index():
     return render_template("index.html")
 
@@ -148,6 +154,53 @@ def get_chart_data():
     return jsonify({
         "dates": df.index.strftime("%Y-%m-%d").tolist(),
         "values": df[metric].tolist()
+    })
+
+@app.route("/predict_and_plot", methods=["GET"])
+def predict_and_plot():
+    """Generate TFT predictions and return formatted data for frontend."""
+
+    max_encoder_length = int(request.args.get("max_encoder_length", 31))
+    max_prediction_length = int(request.args.get("max_prediction_length", 31))
+
+    if not os.path.exists(FILE_PATH):
+        return jsonify({"error": "Daily data file not found"}), 404
+
+    df_final = pd.read_csv(FILE_PATH, index_col="Date", parse_dates=True)
+    df_final = df_final.sort_index()
+
+    # Preprocess for TFT
+    df_final = preprocess_for_tft(df_final)
+    shift = 0
+    # Define cutoff points
+    today = pd.Timestamp(datetime.today().date())  # Convert to Timestamp
+    prediction_start = today - pd.Timedelta(days=shift)
+    training_cutoff = prediction_start - pd.Timedelta(days=1)  # Ensure it's in the right format
+
+    # Filter only the necessary data for TFT
+    filtered_data = df_final[
+        (df_final.index >= training_cutoff - timedelta(days=max_encoder_length)) &
+        (df_final.index <= prediction_start + timedelta(days=max_prediction_length))
+        ].copy()
+    filtered_data["time_idx"] = filtered_data["time_idx"].astype(int)
+    # Load model
+    best_tft = load_model()
+
+    # Run prediction
+    predictions_df = run_tft_prediction(best_tft, filtered_data, max_prediction_length)
+
+    historical_data = predictions_df[predictions_df["Close"].notna()]
+    predicted_data = predictions_df[predictions_df["Close"].isna()]
+
+    historical_data = historical_data.where(pd.notna(historical_data), None)
+    predicted_data = predicted_data.where(pd.notna(predicted_data), None)
+
+    historical_data = historical_data.replace({np.nan: None})
+    predicted_data = predicted_data.replace({np.nan: None})
+
+    return jsonify({
+        "historical": historical_data.to_dict(orient="records"),
+        "predicted": predicted_data.to_dict(orient="records"),
     })
 
 @app.errorhandler(404)

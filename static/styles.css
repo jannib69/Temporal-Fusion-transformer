@@ -1,8 +1,11 @@
+/* Import Open Sans font */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+
 /* Global Styles */
 body {
     background-color: #f8f9fa;
     color: #333;
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     margin: 0;
     padding-top: 70px;
 }
@@ -16,19 +19,18 @@ body {
     top: 0;
     width: 100%;
     z-index: 1000;
-    border-radius: 0px 0px 15px 15px;
-    box-shadow: none;
+    border-radius: 0 0 15px 15px;
 }
 
 .navbar-brand {
     font-size: 1.6rem;
-    font-weight: bold;
+    font-weight: 700;
     color: #333 !important;
 }
 
 .navbar-nav .nav-link {
     color: #555 !important;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 1rem;
     padding: 10px 15px;
     transition: all 0.3s ease-in-out;
@@ -194,4 +196,34 @@ h1, h2, h3 {
     color: #666;
     text-align: center;
     margin-top: 10px;
+}
+
+/* Responsive (mobile/tablet) */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.3rem;
+    }
+
+    .navbar-nav .nav-link {
+        font-size: 0.95rem;
+        padding: 8px 12px;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    h1, h2, h3 {
+        font-size: 1.5rem;
+    }
+
+    #chart-container {
+        height: 400px;
+        padding: 15px;
+    }
+
+    #data-table th, #data-table td {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
 }

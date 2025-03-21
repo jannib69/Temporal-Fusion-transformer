@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.stattools import grangercausalitytests
 from copy import deepcopy as dc
 from data_util import TransformUtil, BTC
@@ -198,3 +200,61 @@ def process_bitcoin_data(df_btc, explained_var=0.9):
 
 def get_today():
     return datetime.today().strftime('%Y-%m-%d')
+
+def preprocess_for_tft(df):
+    # Clip Volume na 5% in 95% percentil
+    lower_bound, upper_bound = np.percentile(df["Volume"].dropna(), [5, 95])
+    df["Volume"] = np.clip(df["Volume"], lower_bound, upper_bound)
+
+    # Agregacije Volume (resample zahteva datetime index)
+    if df.index.inferred_type == "datetime64":
+        df["Volume_weekly"] = df["Volume"].resample("W").mean()
+        df["Volume_monthly"] = df["Volume"].resample("ME").mean()
+    else:
+        print("Napaka: Index ni v datetime formatu!")
+
+    # Drseča povprečja
+    df["MA7"] = df["Close"].rolling(7, min_periods=1).mean()
+    df["MA111"] = df["Close"].rolling(111, min_periods=1).mean()
+    df["MA200"] = df["Close"].rolling(200, min_periods=1).mean()
+
+    # Odstranimo podvojene stolpce v seznamu
+    cols_2_scale = [
+        'Volume', "Volume_weekly", "Volume_monthly", "MA7", "MA111", "MA200",
+        'High', 'Low', 'Open', 'BTC_miners', 'BTC_transactions', 'BTC_network',
+        'Unique Addresses Used', 'Number of Transactions', 'Transactions Per Second',
+        'Output Volume', 'Mempool Transaction Count', 'Mempool Size Growth',
+        'Mempool Size (Bytes)', 'Transactions Excluding Popular Addresses',
+        'Estimated Transaction Volume (BTC)', 'Estimated Transaction Volume (USD)',
+        'Miners Revenue (USD)', 'Transaction Fees (BTC)', 'Transaction Fees (USD)',
+        'Cost per Transaction (%)', 'Cost per Transaction (USD)', 'Network Difficulty',
+        'Hash Rate (TH/s)', 'Block Size', 'Average Block Size', 'Transactions per Block',
+        'Trade Volume', 'Total Bitcoins', 'Market Cap', 'M2SL', 'FEDFUNDS',
+        'IRLTLT01JPM156N', 'CPIAUCSL', 'PAYEMS', 'GEPUCURRENT', 'USEPUINDXD',
+        'EPUMONETARY', 'APU000072610', 'DTWEXBGS', 'DGS10', 'DGS2', 'DFF', 'VIXCLS',
+        'WLEMUINDXD', 'T10Y2Y', 'T10Y3M', 'T10YIE',  'IBIT', 'FBTC', 'BITB', 'ARKB', 'BTCO',
+       'EZBC', 'BRRR', 'HODL', 'BTCW', 'GBTC', 'BTC', 'Total'
+    ]
+
+    # Odstranimo manjkajoče stolpce pred skaliranjem
+    cols_2_scale = [col for col in cols_2_scale if col in df.columns]
+
+    # Skaliranje numeričnih podatkov
+    scaler = StandardScaler()
+    df[cols_2_scale] = scaler.fit_transform(df[cols_2_scale])
+
+    # Interpolacija manjkajočih vrednosti
+    df = df.infer_objects(copy=False)
+    df = df.interpolate(method="linear", limit_direction="both")
+
+    # Dodaj stolpec 'group'
+    df["group"] = "BTC"
+
+    # Seznam kategorijskih spremenljivk (filtriraj obstoječe stolpce)
+    categorical_cols = ['US', 'UK', 'Japan', 'China', 'day', 'month', 'time_idx', 'is_weekend', 'Halving', 'group']
+    categorical_cols = [col for col in categorical_cols if col in df.columns]
+    df['time_idx'] = df['time_idx'].astype(int)
+    # Pretvorba v kategorijo
+    df[categorical_cols] = df[categorical_cols].astype(str).astype("category")
+
+    return df
