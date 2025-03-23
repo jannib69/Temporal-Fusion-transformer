@@ -5,7 +5,7 @@ from pytorch_forecasting.models.temporal_fusion_transformer import TemporalFusio
 torch.set_float32_matmul_precision('high')
 
 
-MODEL_PATH = "Models/TFT_Model_4.ckpt"
+MODEL_PATH = "Models/TFT_Model_5-2.ckpt"
 
 def load_model():
     """Load the trained TFT model from disk"""
@@ -37,13 +37,13 @@ def run_tft_prediction(model, data, max_prediction_length):
 
     print(f"Shape of raw predictions: {predicted_quantiles.shape}")
 
-    quantile_05 = predicted_quantiles[:, :, 0].detach().cpu().numpy().squeeze()
+    quantile_15 = predicted_quantiles[:, :, 0].detach().cpu().numpy().squeeze()
     quantile_50 = predicted_quantiles[:, :, 1].detach().cpu().numpy().squeeze()
     quantile_85 = predicted_quantiles[:, :, 2].detach().cpu().numpy().squeeze()
 
 
     print(
-        f"Extracted quantiles - Median shape: {quantile_50.shape}, Lower bound: {quantile_05.shape}, Upper bound: {quantile_85.shape}")
+        f"Extracted quantiles - Median shape: {quantile_50.shape}, Lower bound: {quantile_15.shape}, Upper bound: {quantile_85.shape}")
 
     if len(quantile_50) == 0:
         print("Error: No valid predictions returned.")
@@ -56,12 +56,11 @@ def run_tft_prediction(model, data, max_prediction_length):
     predictions_df = pd.DataFrame({
         "time_idx": time_idx,
         "Predicted_Median": quantile_50,
-        "Lower_Bound": quantile_05,
+        "Lower_Bound": quantile_15,
         "Upper_Bound": quantile_85
     })
 
     data = data.reset_index()  # prenese Date iz indexa v stolpec
-
 
     predictions_df = data[["time_idx", "Date", "Close"]].merge(
         predictions_df,
@@ -70,9 +69,10 @@ def run_tft_prediction(model, data, max_prediction_length):
     )
 
     predictions_df.loc[
-        predictions_df.time_idx >= predictions_df.time_idx.max() - max_prediction_length+1,
+        predictions_df.time_idx >= (predictions_df.time_idx.max() - max_prediction_length +1),
         "Close"
     ] = np.nan
+
 
     print("Predictions DataFrame after merging with dates:")
     return predictions_df

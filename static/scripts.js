@@ -179,7 +179,9 @@ function renderChart(historicalData, predictedData) {
     const predictedMedian = filteredPredictedData.map(d => d.Predicted_Median);
     const lowerBound = filteredPredictedData.map(d => d.Lower_Bound);
     const upperBound = filteredPredictedData.map(d => d.Upper_Bound);
+    console.log(historicalDates)
 
+    console.log(predictedDates)
     const allDates = [...new Set([...historicalDates, ...predictedDates])].sort((a, b) => a - b);
     const allPrices = [...historicalPrices, ...predictedMedian, ...lowerBound, ...upperBound].filter(v => v != null);
     const minY = Math.min(...allPrices) * 0.98;
@@ -216,7 +218,7 @@ function renderChart(historicalData, predictedData) {
                     backgroundColor: "rgba(247, 147, 26, 0.2)",
                     borderColor: "transparent",
                     pointRadius: 0,
-                    fill: '-1' // Senčenje do prejšnjega dataset-a
+                    fill: '-1'
                 },
                 {
                     label: "Napoved (Median)",

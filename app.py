@@ -205,8 +205,8 @@ def get_chart_data():
 def predict_and_plot():
     """Generate TFT predictions and return formatted data for frontend."""
 
-    max_encoder_length = int(request.args.get("max_encoder_length", 31))
-    max_prediction_length = int(request.args.get("max_prediction_length", 31))
+    max_encoder_length = int(request.args.get("max_encoder_length", 120))
+    max_prediction_length = int(request.args.get("max_prediction_length", 131))
 
     if not os.path.exists(FILE_PATH):
         return jsonify({"error": "Daily data file not found"}), 404
@@ -216,17 +216,22 @@ def predict_and_plot():
 
     # Preprocess for TFT
     df_final = preprocess_for_tft(df_final)
-    shift = 0
-    # Define cutoff points
-    today = pd.Timestamp(datetime.today().date())  # Convert to Timestamp
-    prediction_start = today - pd.Timedelta(days=shift)
-    training_cutoff = prediction_start - pd.Timedelta(days=1)  # Ensure it's in the right format
 
+    # Define cutoff points
+    today = pd.Timestamp(datetime.today().date())  # Current date as Timestamp
+
+    # Set the start of the prediction period and training cutoff
+    prediction_start = today
+    training_cutoff = today - pd.Timedelta(
+        days=max_encoder_length)  # Training data up to max_encoder_length before today
+    print(today)
     # Filter only the necessary data for TFT
     filtered_data = df_final[
-        (df_final.index >= training_cutoff - timedelta(days=max_encoder_length)) &
-        (df_final.index <= prediction_start + timedelta(days=max_prediction_length))
+        (df_final.index >= training_cutoff) &
+        (df_final.index <= prediction_start + pd.Timedelta(days=max_prediction_length))
         ].copy()
+
+
     filtered_data["time_idx"] = filtered_data["time_idx"].astype(int)
     # Load model
     best_tft = load_model()
@@ -242,6 +247,9 @@ def predict_and_plot():
 
     historical_data = historical_data.replace({np.nan: None})
     predicted_data = predicted_data.replace({np.nan: None})
+
+    print(historical_data.tail(2))
+    print(predicted_data.head(2))
 
     return jsonify({
         "historical": historical_data.to_dict(orient="records"),
