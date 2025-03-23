@@ -11,11 +11,26 @@ from ..config import Config
 class BEA:
     BASE_URL = "https://apps.bea.gov/api/data/"
 
+    bea_category_names = {
+        "T1": "GDP and National Income",
+        "T2": "Personal Income and Employment",
+        "T3": "Industry Specific Accounts",
+        "T4": "Fixed Assets and Investment",
+        "T5": "Trade and International Transactions",
+        "T6": "Prices and Inflation",
+        "T7": "Government and Public Sector",
+        "T8": "Financial and Corporate Data"
+    }
+
+    def get_category_name(self, code):
+        return self.bea_category_names.get(code, "Unknown Category")
+
     def __init__(self):
         self.api_key = Config.BEA_API_KEY
         self.session = requests.Session()
         retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504], respect_retry_after_header=False )
         self.session.mount("https://", HTTPAdapter(max_retries=retries))
+        self.bea_category_names = BEA.bea_category_names.copy()
 
     def _get_response(self, url):
         response = self.session.get(url, verify=False)  # Disable SSL verification if needed

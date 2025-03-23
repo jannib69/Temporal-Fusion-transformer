@@ -1,24 +1,12 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from statsmodels.tsa.stattools import grangercausalitytests
 from copy import deepcopy as dc
 from data_util import TransformUtil, BTC
 from tqdm import tqdm
 from datetime import datetime
 import time
-
-# Definicija kategorij
-bea_category_names = {
-    "T1": "GDP and National Income",
-    "T2": "Personal Income and Employment",
-    "T3": "Industry Specific Accounts",
-    "T4": "Fixed Assets and Investment",
-    "T5": "Trade and International Transactions",
-    "T6": "Prices and Inflation",
-    "T7": "Government and Public Sector",
-    "T8": "Financial and Corporate Data"
-}
 
 def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_threshold=0.7):
     df_indices = pd.DataFrame(index=pd.date_range(start="2000-01-01", end="2030-12-31", freq="QS"))
@@ -81,7 +69,7 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
             continue  # Pojdi na naslednjo kategorijo
 
         df_tmp_pca_indicator = TransformUtil.create_indicator(
-            bea_category_names[category], df_tmp, scaler="standard", method="mean", explained_var=explained_var
+            bea.get_category_name(category), df_tmp, scaler="standard", method="mean", explained_var=explained_var
         )
         if df_tmp_pca_indicator.empty:
             print(f"Preskakujem {category}: Vsi podatki po PCA so preveč manjkajoči!")
@@ -90,8 +78,8 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
         df_tmp_pca_indicator = df_tmp_pca_indicator.asfreq("QS-OCT")
         best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Close")
 
-        df_indices.loc[:, bea_category_names[category]] = df_tmp_pca_indicator
-        df_indices.loc[:, bea_category_names[category]] = df_indices[bea_category_names[category]].shift(best_lag)
+        df_indices.loc[:, bea.get_category_name(category)] = df_tmp_pca_indicator
+        df_indices.loc[:, bea.get_category_name(category)] = df_indices[bea.get_category_name(category)].shift(best_lag)
 
     df_indices = remove_fully_nan_rows(df_indices)
     df_indices = df_indices.resample("D").interpolate(method="linear", limit_direction="both")
@@ -105,7 +93,7 @@ def drop_cols_with_nan(df, tresh=0.7):
     print(f"Number of cols after dropping NaNs: {len(df.columns)}")
     return df
 
-def best_granger_lag(df1, df_btc, target_col, max_lag=5):
+def best_granger_lag(df1, df_btc, target_col, max_lag=10):
     if df1.index.name != "Date" or df_btc.index.name != "Date":
         raise ValueError("Both df1 and df_btc must have 'Date' as index")
 
@@ -179,7 +167,6 @@ def process_fred_data(fred, df_btc):
 
     return df_fred_indices, df_fred_orig
 
-
 def process_bitcoin_data(df_btc, explained_var=0.9):
     df_btc_indices_tmp = BTC.generate_bitcoin_indicators(explained_var)
     df_btc_indices_tmp = df_btc_indices_tmp.interpolate(method="linear", limit_direction="both")
@@ -193,6 +180,9 @@ def process_bitcoin_data(df_btc, explained_var=0.9):
 
         if best_lag is not None:
             df_btc_indices[col] = df_btc_indices_tmp[col].shift(best_lag)
+        else:
+            df_btc_indices[col] = df_btc_indices_tmp[col]
+
     df_btc_indices = remove_fully_nan_rows(df_btc_indices)
     df_btc_indices = df_btc_indices.interpolate(method="linear", limit_direction="both")
 
@@ -240,7 +230,7 @@ def preprocess_for_tft(df):
     cols_2_scale = [col for col in cols_2_scale if col in df.columns]
 
     # Skaliranje numeričnih podatkov
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     df[cols_2_scale] = scaler.fit_transform(df[cols_2_scale])
 
     # Interpolacija manjkajočih vrednosti
@@ -258,3 +248,27 @@ def preprocess_for_tft(df):
     df[categorical_cols] = df[categorical_cols].astype(str).astype("category")
 
     return df
+
+def process_btc_etf_data(df_btc, explained_var=0.9):
+    bitcoin_etf_df_orig = BTC.get_etf_flows()
+
+    df_tmp_pca_indicator = TransformUtil.create_indicator(
+        "BTC_etf", bitcoin_etf_df_orig, scaler="minmax", method="mean", explained_var=explained_var
+    )
+
+    full_index = pd.date_range(start=df_tmp_pca_indicator.index.min(), end="2026-12-31", freq="D")
+    df_tmp_pca_indicator = df_tmp_pca_indicator.reindex(full_index)
+    df_tmp_pca_indicator.index.name = "Date"
+
+    shifted_df = pd.DataFrame(index=df_tmp_pca_indicator.index)
+
+    best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Close")
+    if best_lag is not None:
+        shifted_df = df_tmp_pca_indicator.shift(best_lag)
+    else:
+        shifted_df = df_tmp_pca_indicator
+
+    shifted_df = remove_fully_nan_rows(shifted_df)
+
+    return bitcoin_etf_df_orig, shifted_df
+

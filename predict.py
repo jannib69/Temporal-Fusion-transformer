@@ -5,7 +5,7 @@ from pytorch_forecasting.models.temporal_fusion_transformer import TemporalFusio
 torch.set_float32_matmul_precision('high')
 
 
-MODEL_PATH = "Models/TFT_Model_3.ckpt"
+MODEL_PATH = "Models/TFT_Model_4.ckpt"
 
 def load_model():
     """Load the trained TFT model from disk"""
@@ -70,7 +70,7 @@ def run_tft_prediction(model, data, max_prediction_length):
     )
 
     predictions_df.loc[
-        predictions_df.time_idx >= predictions_df.time_idx.max() - max_prediction_length,
+        predictions_df.time_idx >= predictions_df.time_idx.max() - max_prediction_length+1,
         "Close"
     ] = np.nan
 

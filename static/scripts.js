@@ -170,36 +170,29 @@ async function fetchPredictionData() {
 function renderChart(historicalData, predictedData) {
     const ctx = document.getElementById("predictionChart").getContext("2d");
 
-    // Filter and process historical data
     const filteredHistoricalData = historicalData.filter(d => d.Close !== null);
     const historicalDates = filteredHistoricalData.map(d => new Date(d.Date));
     const historicalPrices = filteredHistoricalData.map(d => d.Close);
 
-    // Filter and process predicted data
     const filteredPredictedData = predictedData.filter(d => d.Predicted_Median !== null);
     const predictedDates = filteredPredictedData.map(d => new Date(d.Date));
     const predictedMedian = filteredPredictedData.map(d => d.Predicted_Median);
     const lowerBound = filteredPredictedData.map(d => d.Lower_Bound);
     const upperBound = filteredPredictedData.map(d => d.Upper_Bound);
 
-    // Ensure the dates are sorted correctly
     const allDates = [...new Set([...historicalDates, ...predictedDates])].sort((a, b) => a - b);
-
-    // Calculate min/max for y-axis scaling
     const allPrices = [...historicalPrices, ...predictedMedian, ...lowerBound, ...upperBound].filter(v => v != null);
     const minY = Math.min(...allPrices) * 0.98;
     const maxY = Math.max(...allPrices) * 1.02;
 
-    // Destroy old chart instance if exists
     if (window.predictionChartInstance) {
         window.predictionChartInstance.destroy();
     }
 
-    // Initialize new chart
     window.predictionChartInstance = new Chart(ctx, {
         type: "line",
         data: {
-            labels: allDates, // Ensure correct x-axis reference
+            labels: allDates,
             datasets: [
                 {
                     label: "Pretekle cene",
@@ -210,9 +203,25 @@ function renderChart(historicalData, predictedData) {
                     fill: false
                 },
                 {
+                    label: "Spodnja meja za senčenje",
+                    data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
+                    backgroundColor: "rgba(247, 147, 26, 0.2)",
+                    borderColor: "transparent",
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: "Območje zaupanja",
+                    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
+                    backgroundColor: "rgba(247, 147, 26, 0.2)",
+                    borderColor: "transparent",
+                    pointRadius: 0,
+                    fill: '-1' // Senčenje do prejšnjega dataset-a
+                },
+                {
                     label: "Napoved (Median)",
                     data: predictedDates.map((date, i) => ({ x: date, y: predictedMedian[i] })),
-                    borderColor: "#f7931a",  // BTC Orange
+                    borderColor: "#f7931a",
                     borderWidth: 2.5,
                     pointRadius: 0,
                     fill: false
@@ -221,7 +230,7 @@ function renderChart(historicalData, predictedData) {
                     label: "Zgornja meja",
                     data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
                     borderColor: "#f7931a",
-                    borderDash: [5, 5],  // Dashed line
+                    borderDash: [5, 5],
                     borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false
@@ -230,7 +239,7 @@ function renderChart(historicalData, predictedData) {
                     label: "Spodnja meja",
                     data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
                     borderColor: "#f7931a",
-                    borderDash: [5, 5],  // Dashed line
+                    borderDash: [5, 5],
                     borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false
@@ -305,3 +314,16 @@ function renderChart(historicalData, predictedData) {
         }
     });
 }
+
+function setCurrentYear() {
+    const yearSpan = document.getElementById("current-year");
+    if (yearSpan) {
+        yearSpan.textContent = new Date().getFullYear().toString();
+    }
+}
+
+document.addEventListener("DOMContentLoaded", async function () {
+    await fetchComponent("navbar-placeholder", "/navbar");
+    await fetchComponent("footer-placeholder", "/footer");
+    setTimeout(setCurrentYear, 50);  // počakaj, da je footer dodan
+});
