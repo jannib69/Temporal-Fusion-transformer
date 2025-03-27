@@ -5,7 +5,7 @@ from pytorch_forecasting.models.temporal_fusion_transformer import TemporalFusio
 torch.set_float32_matmul_precision('high')
 
 
-MODEL_PATH = "Models/TFT_Model_5-2.ckpt"
+MODEL_PATH = "Models/TFT_Model_6.ckpt"
 
 def load_model():
     """Load the trained TFT model from disk"""
@@ -57,7 +57,7 @@ def run_tft_prediction(model, data, max_prediction_length):
         "time_idx": time_idx,
         "Predicted_Median": quantile_50,
         "Lower_Bound": quantile_15,
-        "Upper_Bound": quantile_85
+        "Upper_Bound": quantile_85,
     })
 
     data = data.reset_index()  # prenese Date iz indexa v stolpec
@@ -69,7 +69,7 @@ def run_tft_prediction(model, data, max_prediction_length):
     )
 
     predictions_df.loc[
-        predictions_df.time_idx >= (predictions_df.time_idx.max() - max_prediction_length +1),
+        predictions_df.time_idx >= (predictions_df.time_idx.max() - max_prediction_length +2),
         "Close"
     ] = np.nan
 

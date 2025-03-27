@@ -25,14 +25,17 @@ class HolidayUtil:
         df_holidays.index.name = "Date"
 
         for country_name, country_code in countries.items():
-            holiday_calendar = holidays.country_holidays(country_code)
-            df_holidays[country_name] = df_holidays.index.map(lambda x: holiday_calendar.get(x, "-"))
+            df_holidays[country_name] = df_holidays.index.map(lambda x: holidays.country_holidays(country_code).get(x, "-"))
 
         df_holidays["day"] = df_holidays.index.day
         df_holidays["month"] = df_holidays.index.month
+        df_holidays["day_of_week"] = df_holidays.index.dayofweek
+        df_holidays["week_of_year"] = df_holidays.index.isocalendar().week.astype(int)
+        df_holidays["year"] = df_holidays.index.year
+        df_holidays["quarter"] = df_holidays.index.quarter
+        df_holidays["is_weekend"] = (df_holidays.index.dayofweek >= 5).astype(int)
+        df_holidays["is_month_end"] = df_holidays.index.is_month_end.astype(int)
         df_holidays["time_idx"] = (df_holidays.index - df_holidays.index.min()).days
-
-        df_holidays["is_weekend"] = (df_holidays.index.weekday >= 5).astype(int)
 
         halving_dates = pd.to_datetime(halving_dates)
         df_holidays["Halving"] = df_holidays.index.isin(halving_dates).astype(int)

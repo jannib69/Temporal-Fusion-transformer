@@ -132,14 +132,14 @@ class BTC:
         ]
 
         df_btc_indices["BTC_miners"] = TransformUtil.create_indicator("BTC_miners", df_tmp[mining_indicators],
-                                                                        scaler="minmax", method="mean",
+                                                                        scaler="robust", method="weighted",
                                                                         explained_var=explained_var)
         df_btc_indices["BTC_transactions"] = TransformUtil.create_indicator("BTC_transactions",
                                                                               df_tmp[transaction_indicators],
-                                                                              scaler="minmax", method="mean",
+                                                                              method="mean", scaler="quantile", mi_threshold=0.01,
                                                                               explained_var=explained_var)
         df_btc_indices["BTC_network"] = TransformUtil.create_indicator("BTC_network", df_tmp[network_indicators],
-                                                                         scaler="minmax", method="mean",
+                                                                         method="weighted", scaler="standard",
                                                                          explained_var=explained_var)
         df_btc_indices = df_btc_indices.dropna(how="all")
 

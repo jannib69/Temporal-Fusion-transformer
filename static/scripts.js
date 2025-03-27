@@ -179,13 +179,22 @@ function renderChart(historicalData, predictedData) {
     const predictedMedian = filteredPredictedData.map(d => d.Predicted_Median);
     const lowerBound = filteredPredictedData.map(d => d.Lower_Bound);
     const upperBound = filteredPredictedData.map(d => d.Upper_Bound);
-    console.log(historicalDates)
 
-    console.log(predictedDates)
-    const allDates = [...new Set([...historicalDates, ...predictedDates])].sort((a, b) => a - b);
     const allPrices = [...historicalPrices, ...predictedMedian, ...lowerBound, ...upperBound].filter(v => v != null);
     const minY = Math.min(...allPrices) * 0.98;
     const maxY = Math.max(...allPrices) * 1.02;
+
+    const fullLine = [];
+    for (let d of historicalData) {
+        if (d.Close !== null) {
+            fullLine.push({ x: new Date(d.Date), y: d.Close });
+        }
+    }
+    for (let d of predictedData) {
+        if (d.Predicted_Median !== null) {
+            fullLine.push({ x: new Date(d.Date), y: d.Predicted_Median });
+        }
+    }
 
     if (window.predictionChartInstance) {
         window.predictionChartInstance.destroy();
@@ -194,7 +203,6 @@ function renderChart(historicalData, predictedData) {
     window.predictionChartInstance = new Chart(ctx, {
         type: "line",
         data: {
-            labels: allDates,
             datasets: [
                 {
                     label: "Pretekle cene",
@@ -204,22 +212,21 @@ function renderChart(historicalData, predictedData) {
                     pointRadius: 0,
                     fill: false
                 },
-                {
-                    label: "Spodnja meja za senčenje",
-                    data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
-                    backgroundColor: "rgba(247, 147, 26, 0.2)",
-                    borderColor: "transparent",
-                    pointRadius: 0,
-                    fill: false
-                },
-                {
-                    label: "Območje zaupanja",
-                    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
-                    backgroundColor: "rgba(247, 147, 26, 0.2)",
-                    borderColor: "transparent",
-                    pointRadius: 0,
-                    fill: '-1'
-                },
+{
+    label: "Območje zaupanja",
+    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
+    backgroundColor: "rgba(247, 147, 26, 0.2)",
+    borderColor: "transparent",
+    pointRadius: 0,
+    fill: '+1'
+},
+{
+    label: "_", // skrito iz legende
+    data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
+    borderColor: "transparent",
+    pointRadius: 0,
+    fill: false
+},
                 {
                     label: "Napoved (Median)",
                     data: predictedDates.map((date, i) => ({ x: date, y: predictedMedian[i] })),
@@ -229,31 +236,36 @@ function renderChart(historicalData, predictedData) {
                     fill: false
                 },
                 {
-                    label: "Zgornja meja",
-                    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
+                    // Skrita povezovalna črta (zgodovina + napoved)
+                    data: fullLine,
                     borderColor: "#f7931a",
-                    borderDash: [5, 5],
-                    borderWidth: 1.5,
+                    borderWidth: 2,
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    label: "_", // skrij iz legende
                 },
                 {
-                    label: "Spodnja meja",
+                    // Nevidna spodnja meja (za senčenje)
                     data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
-                    borderColor: "#f7931a",
-                    borderDash: [5, 5],
-                    borderWidth: 1.5,
+                    borderColor: "transparent",
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    label: "_"
+                },
+                {
+                    // Nevidna zgornja meja (za senčenje)
+                    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
+                    borderColor: "transparent",
+                    pointRadius: 0,
+                    fill: false,
+                    label: "_"
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            layout: {
-                padding: { top: 20, bottom: 20 }
-            },
+            layout: { padding: { top: 20, bottom: 20 } },
             scales: {
                 x: {
                     type: "time",
@@ -278,7 +290,12 @@ function renderChart(historicalData, predictedData) {
                     labels: {
                         usePointStyle: true,
                         pointStyle: "line",
-                        font: { size: 13 }
+                        font: { size: 13 },
+                        generateLabels: (chart) => {
+                            return Chart.defaults.plugins.legend.labels.generateLabels(chart).filter(label =>
+                                ["Pretekle cene", "Napoved (Median)", "Območje zaupanja"].includes(label.text)
+                            );
+                        }
                     }
                 },
                 tooltip: {
@@ -299,23 +316,14 @@ function renderChart(historicalData, predictedData) {
                     }
                 },
                 zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: "x",
-                        scaleMode: "x",
-                        speed: 0.5
-                    },
-                    zoom: {
-                        enabled: true,
-                        mode: "x",
-                        scaleMode: "x",
-                        speed: 0.1
-                    }
+                    pan: { enabled: true, mode: "x", scaleMode: "x", speed: 0.5 },
+                    zoom: { enabled: true, mode: "x", scaleMode: "x", speed: 0.1 }
                 }
             }
         }
     });
 }
+
 
 function setCurrentYear() {
     const yearSpan = document.getElementById("current-year");

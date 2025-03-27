@@ -4,7 +4,7 @@ import pandas as pd
 from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today, preprocess_for_tft, process_btc_etf_data
 from predict import load_model, run_tft_prediction
 from data_util import HolidayUtil, BTC, BEA, FRED
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import threading
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -47,6 +47,7 @@ def get_data():
 
         if not skip_download:
             print("Priprava glavnega DataFrame...")
+
             os.makedirs(SUBSET_PATH, exist_ok=True)
             main_df = pd.DataFrame(index=pd.date_range(start="2000-01-01", end="2030-12-31", freq="D"))
             main_df.index.name = "Date"
@@ -127,7 +128,6 @@ def get_data():
             print("Končujem nalaganje – nastavljam data_loading = False")
             data_loading = False
 
-
 def schedule_data_check():
     """Preveri in osveži podatke vsakih 10 minut."""
     global data_loading
@@ -141,7 +141,6 @@ def schedule_data_check():
                 return
             print("Samodejna posodobitev podatkov...")
         threading.Thread(target=get_data, daemon=True).start()
-
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(schedule_data_check, "interval", minutes=0.1)
@@ -203,10 +202,19 @@ def get_chart_data():
 
 @app.route("/predict_and_plot", methods=["GET"])
 def predict_and_plot():
-    """Generate TFT predictions and return formatted data for frontend."""
 
-    max_encoder_length = int(request.args.get("max_encoder_length", 120))
-    max_prediction_length = int(request.args.get("max_prediction_length", 131))
+    # Load model
+    best_tft = load_model()
+
+    params = best_tft.hparams.dataset_parameters
+
+    max_encoder_length = params["max_encoder_length"]
+    max_prediction_length = params["max_prediction_length"]
+
+    print("Encoder length:", max_encoder_length)
+    print("Prediction length:", max_prediction_length)
+
+    print("papa:", print(best_tft.hparams))
 
     if not os.path.exists(FILE_PATH):
         return jsonify({"error": "Daily data file not found"}), 404
@@ -215,26 +223,21 @@ def predict_and_plot():
     df_final = df_final.sort_index()
 
     # Preprocess for TFT
-    df_final = preprocess_for_tft(df_final)
+    df_final = preprocess_for_tft(df_final, max_prediction_lenght=max_prediction_length)
 
-    # Define cutoff points
-    today = pd.Timestamp(datetime.today().date())  # Current date as Timestamp
+    print(df_final.index.min())
+    print(df_final.index.max())
 
-    # Set the start of the prediction period and training cutoff
-    prediction_start = today
-    training_cutoff = today - pd.Timedelta(
+    prediction_start = pd.Timestamp(get_today())
+    training_cutoff = prediction_start - pd.Timedelta(
         days=max_encoder_length)  # Training data up to max_encoder_length before today
-    print(today)
+
     # Filter only the necessary data for TFT
     filtered_data = df_final[
         (df_final.index >= training_cutoff) &
         (df_final.index <= prediction_start + pd.Timedelta(days=max_prediction_length))
         ].copy()
 
-
-    filtered_data["time_idx"] = filtered_data["time_idx"].astype(int)
-    # Load model
-    best_tft = load_model()
 
     # Run prediction
     predictions_df = run_tft_prediction(best_tft, filtered_data, max_prediction_length)
