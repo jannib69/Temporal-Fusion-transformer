@@ -5,7 +5,7 @@ from pytorch_forecasting.models.temporal_fusion_transformer import TemporalFusio
 torch.set_float32_matmul_precision('high')
 
 
-MODEL_PATH = "Models/TFT_Model_6.ckpt"
+MODEL_PATH = "Models/TFT_Model_14.ckpt"
 
 def load_model():
     """Load the trained TFT model from disk"""

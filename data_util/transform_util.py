@@ -9,7 +9,7 @@ class TransformUtil:
     @staticmethod
     def create_indicator(indicator_name, df, scaler="minmax", method="mean", explained_var=0.8, mi_threshold=None):
         if df.isnull().values.any():
-            df = df.interpolate(method="linear", limit_direction="both")
+            df = df.interpolate(method="time", limit_direction="both")
 
         # Skaliranje
         if scaler == "minmax":
@@ -29,7 +29,7 @@ class TransformUtil:
         if df_scaled.shape[1] == 1:
             return df_scaled.rename(columns={df_scaled.columns[0]: indicator_name})
 
-        # Mutual Information za izbor značilk med sabo in povprečjem po vrsticah
+        # Mutual Information za izbor značilk med sabo in povprečjem po vrsticah - Sintetic indicator
         mi = mutual_info_regression(df_scaled, df_scaled.mean(axis=1))
         if np.all(mi == 0):
             print(f"[{indicator_name}] Opozorilo: Vse MI vrednosti so 0 – ne izvajamo selekcije.")

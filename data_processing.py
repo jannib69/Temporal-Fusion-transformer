@@ -100,7 +100,7 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
         df_indices.loc[:, bea.get_category_name(category)] = df_indices[bea.get_category_name(category)].shift(best_lag)
 
     df_indices = remove_fully_nan_rows(df_indices)
-    df_indices = df_indices.resample("D").interpolate(method="linear", limit_direction="both")
+    df_indices = df_indices.resample("D").interpolate(method="time", limit_direction="both")
     print("All BEA categories processed successfully.")
     return df_indices, df_bea_orig
 
@@ -194,28 +194,24 @@ def process_fred_data(fred, df_btc):
     btc_monthly = df_btc.resample("MS").mean().dropna()
 
     for col in df_monthly.columns:
-        best_lag = best_granger_lag(df_monthly[[col]], btc_monthly, "Close")
-        print(f"Monthly Lag: {best_lag} | Column: {col}")
-        df_fred_indices[col] = df_monthly[col].shift(best_lag)
+        df_fred_indices[col] = df_monthly[col]
 
     for col in df_daily.columns:
-        best_lag = best_granger_lag(df_daily[[col]], df_btc, "Close")
-        print(f"Daily Lag: {best_lag} | Column: {col}")
-        df_fred_indices[col] = df_daily[col].shift(best_lag)
+        df_fred_indices[col] = df_daily[col]
 
     print("FRED Indices Before Cleaning:", df_fred_indices.tail())
 
     df_fred_indices = remove_fully_nan_rows(df_fred_indices)
     print("FRED Indices After Cleaning:", df_fred_indices.tail())
 
-    df_fred_indices = df_fred_indices.interpolate(method="linear", limit_direction="both")
+    df_fred_indices = df_fred_indices.interpolate(method="time", limit_direction="both")
     print("FRED Indices After Interpolation:", df_fred_indices.tail())
 
     return df_fred_indices, df_fred_orig
 
 def process_bitcoin_data(df_btc, explained_var=0.9):
     df_btc_indices_tmp = BTC.generate_bitcoin_indicators(explained_var)
-    df_btc_indices_tmp = df_btc_indices_tmp.interpolate(method="linear", limit_direction="both")
+    df_btc_indices_tmp = df_btc_indices_tmp.interpolate(method="time", limit_direction="both")
     df_btc_indices_tmp.index.name = "Date"
 
     df_btc_indices = pd.DataFrame(index=pd.date_range(start=df_btc_indices_tmp.index.min(), end="2026-12-31", freq="D"))
@@ -230,7 +226,7 @@ def process_bitcoin_data(df_btc, explained_var=0.9):
             df_btc_indices[col] = df_btc_indices_tmp[col]
 
     df_btc_indices = remove_fully_nan_rows(df_btc_indices)
-    df_btc_indices = df_btc_indices.interpolate(method="linear", limit_direction="both")
+    df_btc_indices = df_btc_indices.interpolate(method="time", limit_direction="both")
 
     return df_btc_indices
 
@@ -295,9 +291,9 @@ def preprocess_for_tft(df, min_date="1.1.2016", max_prediction_lenght=14):
 
     num_cols = df_clipped.select_dtypes(exclude=["object", "category"]).columns
 
-    df_clipped[num_cols] = df_clipped[num_cols].interpolate(method="linear", limit_direction="both")
+    df_clipped[num_cols] = df_clipped[num_cols].interpolate(method="time", limit_direction="both")
 
-    df_all_transformed, qt_transformers = apply_quantile_to_all_except_cat_and_target(df_clipped)
+    df_all_transformed = apply_minmax_to_all_except_cat_and_target(df_clipped)
 
     df_all_transformed["time_idx"] = df_all_transformed["time_idx"].astype(int)
 
@@ -307,8 +303,7 @@ def apply_quantile_to_all_except_cat_and_target(df, target_col="Close"):
     transformed_df = df.copy()
     transformers = {}
 
-    # numerične značilke brez targeta in kategorikalnih
-    numeric_cols = df.select_dtypes(include=["float64", "float32", "int64", "int32"]).columns
+    numeric_cols = df.select_dtypes(include=["number"]).columns
     cols_to_transform = [col for col in numeric_cols if col != target_col]
 
     for col in cols_to_transform:
@@ -321,3 +316,82 @@ def apply_quantile_to_all_except_cat_and_target(df, target_col="Close"):
         transformers[col] = qt
 
     return transformed_df, transformers
+
+def apply_minmax_to_all_except_cat_and_target(df, target_col="Close"):
+    transformed_df = df.copy()
+    num_cols = df.select_dtypes(exclude=["object", "category"]).columns
+    cols_to_transform = [col for col in num_cols if col != target_col]
+
+    scaler = MinMaxScaler()
+    transformed_df[cols_to_transform] = scaler.fit_transform(transformed_df[cols_to_transform])
+
+    return transformed_df
+
+
+def generate_all_ta_features(df):
+    df_feat = df.copy()
+
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        if col not in df_feat.columns:
+            raise ValueError(f"Manjka stolpec '{col}'")
+
+    close = df_feat["Close"]
+    high = df_feat["High"]
+    low = df_feat["Low"]
+    volume = df_feat["Volume"]
+
+    # EMA / SMA
+    for p in [10, 20, 50, 100, 200]:
+        df_feat[f"EMA_{p}"] = close.ewm(span=p, adjust=False).mean()
+        df_feat[f"SMA_{p}"] = close.rolling(window=p).mean()
+
+    # RSI
+    for p in [14, 21]:
+        delta = close.diff()
+        gain = delta.clip(lower=0)
+        loss = -delta.clip(upper=0)
+        avg_gain = gain.rolling(window=p).mean()
+        avg_loss = loss.rolling(window=p).mean()
+        rs = avg_gain / avg_loss
+        df_feat[f"RSI_{p}"] = 100 - (100 / (1 + rs))
+
+    # MACD
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd = ema12 - ema26
+    signal = macd.ewm(span=9, adjust=False).mean()
+    df_feat["MACD"] = macd
+    df_feat["MACD_signal"] = signal
+
+    # Bollinger Bands
+    ma20 = close.rolling(window=20).mean()
+    std20 = close.rolling(window=20).std()
+    df_feat["BB_upper"] = ma20 + 2 * std20
+    df_feat["BB_lower"] = ma20 - 2 * std20
+
+    # Volatility (rolling std)
+    df_feat["Volatility_20"] = close.rolling(window=20).std()
+
+    # ATR (Average True Range)
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low - close.shift()).abs()
+    ], axis=1).max(axis=1)
+    df_feat["ATR_14"] = tr.rolling(window=14).mean()
+
+    # ROC (Rate of Change)
+    df_feat["ROC_10"] = close.pct_change(periods=10)
+
+    # Stochastic Oscillator
+    low_14 = low.rolling(window=14).min()
+    high_14 = high.rolling(window=14).max()
+    df_feat["Stoch_K"] = 100 * (close - low_14) / (high_14 - low_14)
+    df_feat["Stoch_D"] = df_feat["Stoch_K"].rolling(window=3).mean()
+
+    # OBV (On-Balance Volume)
+    obv = volume.copy()
+    obv[close.diff() < 0] *= -1
+    df_feat["OBV"] = obv.cumsum()
+
+    return df_feat

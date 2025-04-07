@@ -1,7 +1,7 @@
 import numpy as np
 from flask import Flask, render_template, jsonify, request, redirect
 import pandas as pd
-from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today, preprocess_for_tft, process_btc_etf_data
+from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today, preprocess_for_tft, process_btc_etf_data, generate_all_ta_features
 from predict import load_model, run_tft_prediction
 from data_util import HolidayUtil, BTC, BEA, FRED
 from datetime import datetime
@@ -12,6 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 FILE_PATH = "Data/daily_data.csv"
+FILE_PATH_cleaned = "Data/daily_data_cleaned.csv"
 FILE_PATH_log = "Data/data_fetching_log.csv"
 SUBSET_PATH = "Data/Subsets/"
 data_loading = False
@@ -76,6 +77,9 @@ def get_data():
             main_df = main_df.merge(bitcoin_df_indices, on="Date", how="left")
             main_df = main_df.merge(bitcoin_df, on="Date", how="left")
 
+            # generira TA
+            main_df = generate_all_ta_features(main_df)
+
             remove_fully_nan_rows(df_btc.merge(bitcoin_df, on="Date", how="left")).to_csv(f"{SUBSET_PATH}btc.csv",
                                                                                           index=True)
 
@@ -115,7 +119,12 @@ def get_data():
             log_entry = pd.DataFrame([[get_today(), "OK"]], columns=["Date", "Status"])
             log_entry.to_csv(FILE_PATH_log, mode='a', header=not os.path.exists(FILE_PATH_log), index=False)
             print("Podatki uspešno shranjeni.")
+            print("grem v pripravo podatkov.")
 
+            cleaned = preprocess_for_tft(main_df, min_date=main_df["BTC_etf"].dropna().index.min(), max_prediction_lenght=60)
+            cleaned["time_idx"] = np.arange(1, len(cleaned) + 1)
+            cleaned.to_csv(FILE_PATH_cleaned, index=True)
+            print("Shranil ociscene podatke.")
 
     except Exception as e:
         print(f"Napaka pri nalaganju podatkov: {e}")
