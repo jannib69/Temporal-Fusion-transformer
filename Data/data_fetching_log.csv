@@ -1,0 +1,39 @@
+Date,Status
+2025-03-21,OK
+2025-03-23,OK
+2025-03-23,OK
+2025-03-23,OK
+2025-03-25,OK
+2025-03-25,OK
+2025-03-25,OK
+2025-03-27,OK
+2025-03-27,OK
+2025-03-27,OK
+2025-03-27,"Found input variables with inconsistent numbers of samples: [5304, 3845]"
+2025-03-27,"Found input variables with inconsistent numbers of samples: [5304, 3845]"
+2025-03-27,"Found input variables with inconsistent numbers of samples: [5304, 3845]"
+2025-03-27,"Found input variables with inconsistent numbers of samples: [5304, 3845]"
+2025-03-27,name 'df_btc' is not defined
+2025-03-28,OK
+2025-03-28,OK
+2025-03-28,too many values to unpack (expected 2)
+2025-03-28,OK
+2025-03-28,OK
+2025-03-30,OK
+2025-04-03,OK
+2025-04-05,OK
+2025-04-06,OK
+2025-04-06,OK
+2025-04-08,OK
+2025-04-16,"""None of [Index(['Daily_change'], dtype='object')] are in the [columns]"""
+2025-04-16,"""None of [Index(['Daily_change'], dtype='object')] are in the [columns]"""
+2025-04-16,"""None of [Index(['Daily_change'], dtype='object')] are in the [columns]"""
+2025-04-16,OK
+2025-06-02,OK
+2025-06-02,OK
+2025-06-02,name 'preprocess_for_tft' is not defined
+2025-06-02,OK
+2025-06-02,OK
+2025-06-02,OK
+2025-06-02,time-weighted interpolation only works on Series or DataFrames with a DatetimeIndex
+2025-06-02,OK
