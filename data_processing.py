@@ -1,11 +1,20 @@
-import pandas as pd
+import warnings
+
 import numpy as np
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer
+from pandas import CategoricalDtype
+
+warnings.filterwarnings("ignore")
+warnings.filterwarnings(
+    "ignore",
+    message="X does not have valid feature names, but StandardScaler was fitted with feature names"
+)
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, QuantileTransformer
 from statsmodels.tsa.stattools import grangercausalitytests
 from copy import deepcopy as dc
 from data_util import TransformUtil, BTC
 from tqdm import tqdm
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 
 def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_threshold=0.7):
@@ -91,10 +100,10 @@ def process_bea_data(bea, df_btc, min_date="2015-01-01", explained_var=0.9, nan_
 
         if df_tmp_pca_indicator.empty:
             print(f"Preskakujem {category}: Vsi podatki po PCA so preveč manjkajoči!")
-            continue  # Pojdi na naslednjo kategorijo
+            continue
 
         df_tmp_pca_indicator = df_tmp_pca_indicator.asfreq("QS-OCT")
-        best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Close")
+        best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Daily_change")
 
         df_indices.loc[:, bea.get_category_name(category)] = df_tmp_pca_indicator
         df_indices.loc[:, bea.get_category_name(category)] = df_indices[bea.get_category_name(category)].shift(best_lag)
@@ -218,7 +227,7 @@ def process_bitcoin_data(df_btc, explained_var=0.9):
     df_btc_indices.index.name = "Date"
 
     for col in df_btc_indices_tmp.columns:
-        best_lag = best_granger_lag(df_btc_indices_tmp[[col]], df_btc, "Close")
+        best_lag = best_granger_lag(df_btc_indices_tmp[[col]], df_btc, "Daily_change")
 
         if best_lag is not None:
             df_btc_indices[col] = df_btc_indices_tmp[col].shift(best_lag)
@@ -246,7 +255,7 @@ def process_btc_etf_data(df_btc, explained_var=0.9):
 
     shifted_df = pd.DataFrame(index=df_tmp_pca_indicator.index)
 
-    best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Close")
+    best_lag = best_granger_lag(df_tmp_pca_indicator, df_btc, "Daily_change")
     if best_lag is not None:
         shifted_df = df_tmp_pca_indicator.shift(best_lag)
     else:
@@ -255,49 +264,6 @@ def process_btc_etf_data(df_btc, explained_var=0.9):
     shifted_df = remove_fully_nan_rows(shifted_df)
 
     return bitcoin_etf_df_orig, shifted_df
-
-def preprocess_for_tft(df, min_date="1.1.2016", max_prediction_lenght=14):
-    df = dc(df)
-
-    df.index = pd.to_datetime(df.index)
-    df = df.sort_index()
-    df["Volume_weekly"] = df["Volume"].resample("W").mean()
-    df["Volume_monthly"] = df["Volume"].resample("ME").mean()
-
-    df["MA7"] = df["Close"].rolling(7, min_periods=1).mean()
-    df["MA111"] = df["Close"].rolling(111, min_periods=1).mean()
-    df["MA200"] = df["Close"].rolling(200, min_periods=1).mean()
-
-    df["Close_delta_1"] = df["Close"].diff(1)
-    df["Close_delta_7"] = df["Close"].diff(7)
-
-    if "time_idx" not in df.columns:
-        df = df.sort_index()
-        df["time_idx"] = np.arange(len(df))
-
-    df["group"] = "BTC"
-
-    cat_cols = ['US', 'UK', 'Japan', 'China', 'day', 'month', 'day_of_week', 'week_of_year', 'year', 'quarter',
-                'is_weekend', 'is_month_end', 'time_idx', 'Halving', "group"]
-
-    df[cat_cols] = df[cat_cols].astype(str).astype("category")
-
-    cutoff_date = pd.Timestamp(pd.Timestamp(datetime.today()) + pd.Timedelta(days=max_prediction_lenght)).normalize()
-
-    df_clipped = df[
-        (df.index >= pd.Timestamp(min_date)) &
-        (df.index <= cutoff_date)
-        ].copy()
-
-    num_cols = df_clipped.select_dtypes(exclude=["object", "category"]).columns
-
-    df_clipped[num_cols] = df_clipped[num_cols].interpolate(method="time", limit_direction="both")
-
-    df_all_transformed = apply_minmax_to_all_except_cat_and_target(df_clipped)
-
-    df_all_transformed["time_idx"] = df_all_transformed["time_idx"].astype(int)
-
-    return df_all_transformed
 
 def apply_quantile_to_all_except_cat_and_target(df, target_col="Close"):
     transformed_df = df.copy()
@@ -395,3 +361,58 @@ def generate_all_ta_features(df):
     df_feat["OBV"] = obv.cumsum()
 
     return df_feat
+
+
+def clean_data_for_models(file_path, file_path_cleaned):
+    # Branje in nastavitev indeksa
+    df = pd.read_csv(file_path, parse_dates=["Date"])
+    df = df.set_index("Date").sort_index()
+
+    df["group"] = "BTC"
+
+    df = df[["Close",
+             "GDP and National Income", "Personal Income and Employment", "Industry Specific Accounts",
+             "Fixed Assets and Investment", "Trade and International Transactions",
+             "Government and Public Sector", "Financial and Corporate Data",
+             "time_idx", "year",
+             "US", "UK", "Japan", "China",
+             "day", "month", "day_of_week", "week_of_year", "quarter",
+             "is_weekend", "is_month_end", "Halving", "group"
+             ]]
+
+    cat_cols = [
+        "US", "UK", "Japan", "China", "day", "month", "day_of_week", "week_of_year",
+        "year", "quarter", "is_weekend", "is_month_end", "Halving", "group"
+    ]
+    df[cat_cols] = df[cat_cols].astype("category")
+
+    # === Definicija stolpcev ===
+    cat_ord_cols = ['day', 'month', 'day_of_week', 'week_of_year', 'year', 'quarter']
+    binary_cols = ['is_weekend', 'is_month_end', 'Halving']
+    all_cat_cols = cat_ord_cols + binary_cols
+
+    # === Definicija urejenih kategorij ===
+    ordered_categories = {
+        'day': list(range(1, 32)),
+        'month': list(range(1, 13)),
+        'day_of_week': list(range(0, 7)),
+        'week_of_year': list(range(1, 54)),
+        'year': sorted(df['year'].dropna().unique().astype(int)),
+        'quarter': [1, 2, 3, 4],
+        'is_weekend': [0, 1],
+        'is_month_end': [0, 1],
+        'Halving': [0, 1]
+    }
+
+    # === Pretvorba v urejene kategorije (kot string) ===
+    for col in all_cat_cols:
+        categories = [str(x) for x in ordered_categories[col]]  # vrednosti kot string
+        cat_type = CategoricalDtype(categories=categories, ordered=True)
+        df[col] = df[col].astype(str).astype(cat_type)
+    df["time_idx"] = np.arange(0, len(df["time_idx"])).astype(int)
+
+    numeric_cols = df.select_dtypes(include=["number"]).columns
+    df[numeric_cols] = df[numeric_cols].interpolate(method="time", limit_direction="both")
+    df.reset_index(inplace=True)
+    df.to_feather(file_path_cleaned)
+    print("Ocisceni podatki shranjeni.")

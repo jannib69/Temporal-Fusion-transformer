@@ -138,21 +138,13 @@ function updateDataSource(category) {
 // ==============================
 
 async function fetchPredictionData() {
-    const maxEncoderLength = 120;
-    const maxPredictionLength = 31;
-
     try {
-        const response = await fetch(`/predict_and_plot?max_encoder_length=${maxEncoderLength}&max_prediction_length=${maxPredictionLength}`);
+        const response = await fetch(`/predict_and_plot`);
         const data = await response.json();
 
         if (!data.historical || !data.predicted) {
             console.error("Napaka: Neveljavni podatki prejeti.");
             return;
-        }
-        const mainContent = document.getElementById("main-content");
-        if (mainContent) {
-            document.getElementById("loading").style.display = "none";
-            mainContent.style.display = "block";
         }
 
         document.getElementById("loading").style.display = "none";
@@ -167,34 +159,20 @@ async function fetchPredictionData() {
     }
 }
 
+
 function renderChart(historicalData, predictedData) {
     const ctx = document.getElementById("predictionChart").getContext("2d");
 
-    const filteredHistoricalData = historicalData.filter(d => d.Close !== null);
-    const historicalDates = filteredHistoricalData.map(d => new Date(d.Date));
-    const historicalPrices = filteredHistoricalData.map(d => d.Close);
+    const historical = historicalData.filter(d => d.Close !== null);
+    const historicalPoints = historical.map(d => ({ x: new Date(d.Date), y: d.Close }));
 
-    const filteredPredictedData = predictedData.filter(d => d.Predicted_Median !== null);
-    const predictedDates = filteredPredictedData.map(d => new Date(d.Date));
-    const predictedMedian = filteredPredictedData.map(d => d.Predicted_Median);
-    const lowerBound = filteredPredictedData.map(d => d.Lower_Bound);
-    const upperBound = filteredPredictedData.map(d => d.Upper_Bound);
+    const predsTFT = predictedData.filter(d => d.TFT !== null).map(d => ({ x: new Date(d.Date), y: d.TFT }));
+    const predsLSTM = predictedData.filter(d => d.LSTM !== null).map(d => ({ x: new Date(d.Date), y: d.LSTM }));
+    const predsGRU = predictedData.filter(d => d.GRU !== null).map(d => ({ x: new Date(d.Date), y: d.GRU }));
 
-    const allPrices = [...historicalPrices, ...predictedMedian, ...lowerBound, ...upperBound].filter(v => v != null);
-    const minY = Math.min(...allPrices) * 0.98;
-    const maxY = Math.max(...allPrices) * 1.02;
-
-    const fullLine = [];
-    for (let d of historicalData) {
-        if (d.Close !== null) {
-            fullLine.push({ x: new Date(d.Date), y: d.Close });
-        }
-    }
-    for (let d of predictedData) {
-        if (d.Predicted_Median !== null) {
-            fullLine.push({ x: new Date(d.Date), y: d.Predicted_Median });
-        }
-    }
+    const allValues = [...historicalPoints.map(p => p.y), ...predsTFT.map(p => p.y), ...predsLSTM.map(p => p.y), ...predsGRU.map(p => p.y)];
+    const minY = Math.min(...allValues) * 0.98;
+    const maxY = Math.max(...allValues) * 1.02;
 
     if (window.predictionChartInstance) {
         window.predictionChartInstance.destroy();
@@ -206,59 +184,35 @@ function renderChart(historicalData, predictedData) {
             datasets: [
                 {
                     label: "Pretekle cene",
-                    data: historicalDates.map((date, i) => ({ x: date, y: historicalPrices[i] })),
+                    data: historicalPoints,
                     borderColor: "black",
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false
                 },
-{
-    label: "Območje zaupanja",
-    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
-    backgroundColor: "rgba(247, 147, 26, 0.2)",
-    borderColor: "transparent",
-    pointRadius: 0,
-    fill: '+1'
-},
-{
-    label: "_", // skrito iz legende
-    data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
-    borderColor: "transparent",
-    pointRadius: 0,
-    fill: false
-},
                 {
-                    label: "Napoved (Median)",
-                    data: predictedDates.map((date, i) => ({ x: date, y: predictedMedian[i] })),
-                    borderColor: "#f7931a",
-                    borderWidth: 2.5,
+                    label: "Napoved: TFT",
+                    data: predsTFT,
+                    borderColor: "#009E73",
+                    borderWidth: 2,
                     pointRadius: 0,
                     fill: false
                 },
                 {
-                    // Skrita povezovalna črta (zgodovina + napoved)
-                    data: fullLine,
-                    borderColor: "#f7931a",
+                    label: "Napoved: LSTM",
+                    data: predsLSTM,
+                    borderColor: "#0072B2",
                     borderWidth: 2,
                     pointRadius: 0,
-                    fill: false,
-                    label: "_", // skrij iz legende
+                    fill: false
                 },
                 {
-                    // Nevidna spodnja meja (za senčenje)
-                    data: predictedDates.map((date, i) => ({ x: date, y: lowerBound[i] })),
-                    borderColor: "transparent",
+                    label: "Napoved: GRU",
+                    data: predsGRU,
+                    borderColor: "#D55E00",
+                    borderWidth: 2,
                     pointRadius: 0,
-                    fill: false,
-                    label: "_"
-                },
-                {
-                    // Nevidna zgornja meja (za senčenje)
-                    data: predictedDates.map((date, i) => ({ x: date, y: upperBound[i] })),
-                    borderColor: "transparent",
-                    pointRadius: 0,
-                    fill: false,
-                    label: "_"
+                    fill: false
                 }
             ]
         },
@@ -269,11 +223,7 @@ function renderChart(historicalData, predictedData) {
             scales: {
                 x: {
                     type: "time",
-                    time: {
-                        unit: "day",
-                        tooltipFormat: "yyyy-MM-dd",
-                        displayFormats: { day: "yyyy-MM-dd" }
-                    },
+                    time: { unit: "day", tooltipFormat: "yyyy-MM-dd", displayFormats: { day: "yyyy-MM-dd" } },
                     title: { display: true, text: "Datum", font: { size: 14, weight: "bold" } },
                     ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 30, minRotation: 30 }
                 },
@@ -290,40 +240,21 @@ function renderChart(historicalData, predictedData) {
                     labels: {
                         usePointStyle: true,
                         pointStyle: "line",
-                        font: { size: 13 },
-                        generateLabels: (chart) => {
-                            return Chart.defaults.plugins.legend.labels.generateLabels(chart).filter(label =>
-                                ["Pretekle cene", "Napoved (Median)", "Območje zaupanja"].includes(label.text)
-                            );
-                        }
+                        font: { size: 13 }
                     }
                 },
                 tooltip: {
                     mode: "nearest",
                     intersect: false,
                     callbacks: {
-                        title: (context) => {
-                            const date = context[0].parsed.x;
-                            return new Date(date).toLocaleDateString("sl-SI", { year: 'numeric', month: 'long', day: 'numeric' });
-                        },
-                        label: (context) => {
-                            let label = context.dataset.label || "";
-                            if (context.raw.y !== null) {
-                                label += `: ${context.raw.y.toFixed(2)}`;
-                            }
-                            return label;
-                        }
+                        title: ctx => new Date(ctx[0].parsed.x).toLocaleDateString("sl-SI"),
+                        label: ctx => `${ctx.dataset.label}: ${ctx.raw.y.toFixed(2)}`
                     }
-                },
-                zoom: {
-                    pan: { enabled: true, mode: "x", scaleMode: "x", speed: 0.5 },
-                    zoom: { enabled: true, mode: "x", scaleMode: "x", speed: 0.1 }
                 }
             }
         }
     });
 }
-
 
 function setCurrentYear() {
     const yearSpan = document.getElementById("current-year");

@@ -32,25 +32,25 @@
             <div id="error-message" class="text-danger text-center my-3" style="display:none;"></div>
 
             <!-- Glavni prikaz -->
-<!-- Glavni prikaz -->
-<div id="main-content" style="display:none;">
-    <h1 class="text-center mb-3" style="font-size: 2rem;">Napoved cene Bitcoina</h1>
-    <p class="text-center text-muted mb-4" style="max-width: 800px; margin: 0 auto;">
-        Prikaz temelji na naprednem <strong>Temporal Fusion Transformer (TFT)</strong> modelu, ki uporablja časovne ekonomske in blockchain podatke za napoved gibanja cene Bitcoina.
-        Rezultati vključujejo negotovost modela in so zgolj informativne narave. <strong>To ni finančni nasvet.</strong>
-    </p>
+            <div id="main-content" style="display:none;">
+                <h1 class="text-center mb-3" style="font-size: 2rem;">Napoved cene Bitcoina</h1>
+                <p class="text-center text-muted mb-4" style="max-width: 800px; margin: 0 auto;">
+                    Prikaz temelji na naprednih modelih globokega učenja (<strong>TFT</strong>, <strong>LSTM</strong>, <strong>GRU</strong>), ki uporabljajo časovne ekonomske in blockchain podatke za napoved gibanja cene Bitcoina.
+                    Rezultati vključujejo negotovost modelov in so zgolj informativne narave. <strong>To ni finančni nasvet.</strong>
+                </p>
 
-    <!-- Graf -->
-    <h4 class="text-center mt-5 mb-3">Modelirana napoved z zgodovinskimi podatki</h4>
-    <div id="chart-container">
-        <canvas id="predictionChart"></canvas>
-    </div>
+                <!-- Skupni graf -->
+                <h4 class="text-center mt-5 mb-3">Napovedi (TFT, LSTM, GRU) in zgodovinske cene</h4>
+                <div class="mb-5" id="chart-container" style="height: 500px;">
+                    <canvas id="predictionChart"></canvas>
+                </div>
 
-    <!-- Vir podatkov -->
-    <div id="data-source" class="text-center mt-3 text-muted small">
-        Vir: Lastni model z uporabo javnih podatkov iz Blockchain.com in ekonomskih virov.
-    </div>
-</div>        </div>
+                <!-- Vir podatkov -->
+                <div id="data-source" class="text-center mt-3 text-muted small">
+                    Vir:  Lastni globokoučniški modeli (TFT, LSTM, GRU), razviti na podlagi javno dostopnih podatkov ameriškega Urada za ekonomsko analizo (BEA – Bureau of Economic Analysis, https://www.bea.gov).
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->

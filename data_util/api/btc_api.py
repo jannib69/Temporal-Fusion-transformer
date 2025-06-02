@@ -42,6 +42,7 @@ class BTC:
             df_btc = yf.download(ticker, period=period, interval=interval, auto_adjust=True, progress=False, multi_level_index=False)
             df_btc.index = df_btc.index.tz_localize(None)
             df_btc = df_btc[["Close", "High", "Low", "Open", "Volume"]]
+            df_btc["Daily_change"] = df_btc["Close"].pct_change()
             df_btc.dropna(inplace=True)
             return df_btc
         except Exception as e:

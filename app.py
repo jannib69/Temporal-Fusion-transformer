@@ -1,8 +1,16 @@
 import numpy as np
 from flask import Flask, render_template, jsonify, request, redirect
 import pandas as pd
-from data_processing import process_bea_data, process_bitcoin_data, process_fred_data, remove_fully_nan_rows, get_today, preprocess_for_tft, process_btc_etf_data, generate_all_ta_features
-from predict import load_model, run_tft_prediction
+from pandas import CategoricalDtype
+
+from data_processing import (process_bea_data,
+                             process_bitcoin_data,
+                             process_fred_data,
+                             remove_fully_nan_rows,
+                             get_today,
+                             process_btc_etf_data,
+                             generate_all_ta_features, clean_data_for_models)
+from predict import load_model, create_dataloaders, run_prediction
 from data_util import HolidayUtil, BTC, BEA, FRED
 from datetime import datetime
 import os
@@ -12,7 +20,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 FILE_PATH = "Data/daily_data.csv"
-FILE_PATH_cleaned = "Data/daily_data_cleaned.csv"
+FILE_PATH_cleaned = "Data/daily_data_model_orig.feather"
 FILE_PATH_log = "Data/data_fetching_log.csv"
 SUBSET_PATH = "Data/Subsets/"
 data_loading = False
@@ -114,17 +122,12 @@ def get_data():
             holiday_df = HolidayUtil.generate_holiday_dataframe(df_btc.index.min(), main_df.index.max())
             main_df = main_df[main_df.index >= main_df['Close'].first_valid_index()]
             main_df = main_df.merge(holiday_df, on="Date", how="left")
-
+            main_df["time_idx"] = np.arange(1, len(main_df) + 1)
             main_df.to_csv(FILE_PATH, index=True)
             log_entry = pd.DataFrame([[get_today(), "OK"]], columns=["Date", "Status"])
             log_entry.to_csv(FILE_PATH_log, mode='a', header=not os.path.exists(FILE_PATH_log), index=False)
             print("Podatki uspešno shranjeni.")
-            print("grem v pripravo podatkov.")
-
-            cleaned = preprocess_for_tft(main_df, min_date=main_df["BTC_etf"].dropna().index.min(), max_prediction_lenght=60)
-            cleaned["time_idx"] = np.arange(1, len(cleaned) + 1)
-            cleaned.to_csv(FILE_PATH_cleaned, index=True)
-            print("Shranil ociscene podatke.")
+            clean_data_for_models(FILE_PATH, FILE_PATH_cleaned)
 
     except Exception as e:
         print(f"Napaka pri nalaganju podatkov: {e}")
@@ -211,62 +214,55 @@ def get_chart_data():
 
 @app.route("/predict_and_plot", methods=["GET"])
 def predict_and_plot():
+    if not os.path.exists(FILE_PATH_cleaned):
+        return jsonify({"error": "Cleaned data file not found"}), 404
 
-    # Load model
-    best_tft = load_model()
+    max_encoder_length = 64
+    max_prediction_length = 7
 
-    params = best_tft.hparams.dataset_parameters
+    # Pripravi podatke in dataloader
+    dataset, predict_dataloader, df = create_dataloaders(
+        FILE_PATH_cleaned,
+        max_encoder_length=max_encoder_length,
+        max_prediction_length=max_prediction_length
+    )
 
-    max_encoder_length = params["max_encoder_length"]
-    max_prediction_length = params["max_prediction_length"]
+    # Naloži modele in napovedi
+    models = {name: load_model(name) for name in ["tft", "lstm", "gru"]}
+    merged = None
+    for name, model in models.items():
+        preds_df = run_prediction(model, predict_dataloader, name)
+        preds_df = preds_df.rename(columns={"Predicted": name.upper()})
+        merged = preds_df if merged is None else merged.merge(preds_df, on="time_idx", how="outer")
 
-    print("Encoder length:", max_encoder_length)
-    print("Prediction length:", max_prediction_length)
+    df = df.reset_index()
+    df["Date"] = pd.to_datetime(df["Date"])
+    today = get_today()
 
-    print("papa:", print(best_tft.hparams))
+    # Zgodovina
+    historical = df[df["Date"] < today].copy().tail(max_encoder_length)
+    historical = historical[["time_idx", "Date", "Close"]]
+    historical["TFT"] = None
+    historical["LSTM"] = None
+    historical["GRU"] = None
 
-    if not os.path.exists(FILE_PATH):
-        return jsonify({"error": "Daily data file not found"}), 404
+    # Napovedi
+    future_dates = pd.date_range(start=today, periods=max_prediction_length, freq="D")
+    future_time_idx = merged["time_idx"].iloc[-max_prediction_length:].values
+    predicted = merged.tail(max_prediction_length).copy()
+    predicted["Date"] = future_dates
+    predicted["Close"] = None
+    predicted = predicted[["time_idx", "Date", "Close", "TFT", "LSTM", "GRU"]]
 
-    df_final = pd.read_csv(FILE_PATH, index_col="Date", parse_dates=True)
-    df_final = df_final.sort_index()
-
-    # Preprocess for TFT
-    df_final = preprocess_for_tft(df_final, max_prediction_lenght=max_prediction_length)
-
-    print(df_final.index.min())
-    print(df_final.index.max())
-
-    prediction_start = pd.Timestamp(get_today())
-    training_cutoff = prediction_start - pd.Timedelta(
-        days=max_encoder_length)  # Training data up to max_encoder_length before today
-
-    # Filter only the necessary data for TFT
-    filtered_data = df_final[
-        (df_final.index >= training_cutoff) &
-        (df_final.index <= prediction_start + pd.Timedelta(days=max_prediction_length))
-        ].copy()
-
-
-    # Run prediction
-    predictions_df = run_tft_prediction(best_tft, filtered_data, max_prediction_length)
-
-    historical_data = predictions_df[predictions_df["Close"].notna()]
-    predicted_data = predictions_df[predictions_df["Close"].isna()]
-
-    historical_data = historical_data.where(pd.notna(historical_data), None)
-    predicted_data = predicted_data.where(pd.notna(predicted_data), None)
-
-    historical_data = historical_data.replace({np.nan: None})
-    predicted_data = predicted_data.replace({np.nan: None})
-
-    print(historical_data.tail(2))
-    print(predicted_data.head(2))
+    # JSON kompatibilno
+    historical = historical.replace({np.nan: None})
+    predicted = predicted.replace({np.nan: None})
 
     return jsonify({
-        "historical": historical_data.to_dict(orient="records"),
-        "predicted": predicted_data.to_dict(orient="records"),
+        "historical": historical.to_dict(orient="records"),
+        "predicted": predicted.to_dict(orient="records")
     })
+
 
 @app.errorhandler(404)
 def page_not_found(e):
