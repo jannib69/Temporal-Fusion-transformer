@@ -117,7 +117,7 @@ def create_dataloaders(
 
     time_varying_known_categoricals = [
         'US', 'UK', 'Japan', 'China', 'day', 'month', 'day_of_week', 'week_of_year',
-        'year', 'quarter', 'is_weekend', 'is_month_end', 'Halving', 'group'
+        'quarter', 'is_weekend', 'is_month_end', 'Halving', 'group'
     ]
 
     time_varying_unknown_reals = ["Close"]
