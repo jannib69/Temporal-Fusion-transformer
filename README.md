@@ -2,6 +2,8 @@
 
 This project is an interactive Flask web application for visualizing 7-day forecasts of Bitcoin price using advanced deep learning models: Temporal Fusion Transformer (TFT), LSTM, and GRU. The predictions are based on real-time economic indicators retrieved automatically from public sources (BEA and others).
 
+![image](https://github.com/user-attachments/assets/1113ef87-94f3-4451-9e97-b93faeaf81fd)
+
 ## Overview
 
 The application allows users to:
